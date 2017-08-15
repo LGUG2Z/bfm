@@ -32,7 +32,7 @@ When adding to the Brewfile, a flag must be used to specify what is being added:
 ```
 bfm add --tap homebrew/dupes
 bfm add --brew vim --args HEAD,with-override-system-vi
-bfm add --brew crisidev/chunkwm/chunkwm -restart-service changed
+bfm add --brew crisidev/chunkwm/chunkwm --restart-service changed
 bfm add --cask macvim
 bfm add --mas Xcode --mas-id 497799835
 ```
