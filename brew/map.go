@@ -7,14 +7,14 @@ import (
 	"sort"
 )
 
-type CacheMap struct {
-	m Map
-	i *InfoCache
-}
-
 type Map map[string]Entry
 
-func (m Map) FromBrewfile(entries []string, i *InfoCache) error {
+type CacheMap struct {
+	M Map
+	C *InfoCache
+}
+
+func (c CacheMap) FromBrewfile(entries []string) error {
 	quotesRegexp := regexp.MustCompile(`'\S+'`)
 	argsRegexp := regexp.MustCompile(`\[.*\]`)
 	restartRegexp := regexp.MustCompile(`restart_service: (:changed|true)`)
@@ -24,7 +24,7 @@ func (m Map) FromBrewfile(entries []string, i *InfoCache) error {
 		match := quotesRegexp.FindString(e)
 		pkg := match[1 : len(match)-1]
 
-		info, err := i.Find(pkg)
+		info, err := c.C.Find(pkg)
 		if err != nil {
 			return err
 		}
@@ -46,24 +46,24 @@ func (m Map) FromBrewfile(entries []string, i *InfoCache) error {
 			b.RestartService = restartBehaviourRegexp.FindString(restartService)
 		}
 
-		m[info.Name] = b
+		c.M[info.Name] = b
 	}
 
 	return nil
 }
 
-func (m Map) ResolveDependencies(i *InfoCache) {
-	for _, b := range m {
+func (c CacheMap) ResolveDependencies() {
+	for _, b := range c.M {
 		if len(b.RequiredDependencies) > 0 {
 			for _, d := range b.RequiredDependencies {
-				m.AddRequiredBy(d, b.Name, i)
+				c.AddRequiredBy(d, b.Name)
 			}
 		}
 	}
 }
 
-func (m Map) RemoveRequiredBy(req string, by string, infoCache *InfoCache) {
-	b := m[req]
+func (c CacheMap) RemoveRequiredBy(req, by string) {
+	b := c.M[req]
 
 	if contains(b.RequiredBy, by) {
 		b.RequiredBy = remove(b.RequiredBy, by)
@@ -71,14 +71,14 @@ func (m Map) RemoveRequiredBy(req string, by string, infoCache *InfoCache) {
 
 	sort.Strings(b.RequiredBy)
 
-	m[b.Name] = b
+	c.M[b.Name] = b
 }
 
-func (m Map) AddRequiredBy(req, by string, i *InfoCache) error {
+func (c CacheMap) AddRequiredBy(req, by string) error {
 	var b Entry
 
-	if _, present := m[req]; !present {
-		info, err := i.Find(req)
+	if _, present := c.M[req]; !present {
+		info, err := c.C.Find(req)
 		if err != nil {
 			return err
 		}
@@ -86,7 +86,7 @@ func (m Map) AddRequiredBy(req, by string, i *InfoCache) error {
 		b = Entry{}
 		b.FromInfo(info)
 	} else {
-		b = m[req]
+		b = c.M[req]
 	}
 
 	if !contains(b.RequiredBy, by) {
@@ -95,32 +95,32 @@ func (m Map) AddRequiredBy(req, by string, i *InfoCache) error {
 
 	sort.Strings(b.RequiredBy)
 
-	m[b.Name] = b
+	c.M[b.Name] = b
 
 	if len(b.RequiredDependencies) > 0 {
 		for _, d := range b.RequiredDependencies {
-			m.AddRequiredBy(d, b.Name, i)
+			c.AddRequiredBy(d, b.Name)
 		}
 	}
 
 	return nil
 }
 
-func (m Map) Remove(name string, i *InfoCache) error {
-	if _, present := m[name]; !present {
+func (c CacheMap) Remove(name string) error {
+	if _, present := c.M[name]; !present {
 		return errors.New("Nothing to remove.")
 	}
 
-	b := m[name]
+	b := c.M[name]
 
 	if len(b.RequiredDependencies) > 0 {
 		for _, dep := range b.RequiredDependencies {
-			m.RemoveRequiredBy(dep, name, i)
+			c.RemoveRequiredBy(dep, name)
 		}
 		fmt.Printf("Removed %s from Brewfile and updated status of its required dependencies: %v \n", b.Name, b.RequiredDependencies)
 
 		for _, dep := range b.RequiredDependencies {
-			if len(m[dep].RequiredBy) < 1 {
+			if len(c.M[dep].RequiredBy) < 1 {
 				fmt.Printf("%s is not required by any other packages. It can be removed if desired.\n", dep)
 			}
 		}
@@ -128,13 +128,13 @@ func (m Map) Remove(name string, i *InfoCache) error {
 		fmt.Printf("Removed %s from Brewfile.\n", b.Name)
 	}
 
-	delete(m, name)
+	delete(c.M, name)
 
 	return nil
 }
 
-func (m Map) Add(name, restart string, args []string, i *InfoCache) error {
-	info, err := i.Find(name)
+func (c CacheMap) Add(name, restart string, args []string) error {
+	info, err := c.C.Find(name)
 	if err != nil {
 		return err
 	}
@@ -158,11 +158,11 @@ func (m Map) Add(name, restart string, args []string, i *InfoCache) error {
 		}
 	}
 
-	m[info.Name] = b
+	c.M[info.Name] = b
 
 	if len(b.RequiredDependencies) > 0 {
 		for _, dep := range b.RequiredDependencies {
-			m.AddRequiredBy(dep, name, i)
+			c.AddRequiredBy(dep, name)
 		}
 		fmt.Printf("Added %s to Brewfile with required dependencies: %v \n", b.Name, b.RequiredDependencies)
 	} else {

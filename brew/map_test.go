@@ -5,34 +5,39 @@ import (
 	"testing"
 )
 
-func TestMap_FromBrewfile(t *testing.T) {
+func TestCacheMap_FromBrewfile(t *testing.T) {
 	expected := []string{"vim", "emacs"}
 
-	infos := []Info{}
+	info := []Info{}
 
 	for _, e := range expected {
-		infos = append(infos, Info{Name: e})
+		info = append(info, Info{Name: e})
 	}
 
-	i := InfoCache(infos)
+	i := InfoCache(info)
 
-	e := []string{
+	brewfile := []string{
 		"brew 'vim'",
 		"brew 'emacs'",
 	}
 
-	actual := make(Map)
+	c := CacheMap{
+		C: &i,
+		M: make(Map),
+	}
 
-	actual.FromBrewfile(e, &i)
+	c.FromBrewfile(brewfile)
 
 	for _, e := range expected {
-		if _, present := actual[e]; !present {
+		if _, present := c.M[e]; !present {
 			t.Fatalf("Expected %s to be present", e)
 		}
 	}
 }
 
-func TestMap_ResolveDependencies(t *testing.T) {
+func TestCacheMap_ResolveDependencies(t *testing.T) {
+	expected := []string{"vim"}
+
 	info := []Info{
 		Info{
 			Name:         "vim",
@@ -50,20 +55,22 @@ func TestMap_ResolveDependencies(t *testing.T) {
 
 	i := InfoCache(info)
 
-	actual := make(Map)
-	actual.FromBrewfile(brewfile, &i)
-	actual.ResolveDependencies(&i)
+	c := CacheMap{
+		C: &i,
+		M: make(Map),
+	}
 
-	expected := []string{"vim"}
+	c.FromBrewfile(brewfile)
+	c.ResolveDependencies()
 
-	python := actual["python"].RequiredBy
+	actual := c.M["python"].RequiredBy
 
-	if !reflect.DeepEqual(python, expected) {
-		t.Fatalf("Expected %t but got %t", expected, python)
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("Expected %t but got %t", expected, actual)
 	}
 }
 
-func TestMap_AddRequiredBy(t *testing.T) {
+func TestCacheMap_AddRequiredBy(t *testing.T) {
 	info := []Info{
 		Info{
 			Name:         "vim",
@@ -77,31 +84,38 @@ func TestMap_AddRequiredBy(t *testing.T) {
 		},
 	}
 
-	brewfile := []string{"brew 'vim'", "brew 'python'"}
+	brewfile := []string{
+		"brew 'vim'",
+		"brew 'python'",
+	}
 
 	i := InfoCache(info)
 
-	actual := make(Map)
-	actual.FromBrewfile(brewfile, &i)
-	actual.ResolveDependencies(&i)
+	c := CacheMap{
+		C: &i,
+		M: make(Map),
+	}
 
-	newInfo := Info{
+	c.FromBrewfile(brewfile)
+	c.ResolveDependencies()
+
+	new := Info{
 		Name:         "neovim",
 		FullName:     "neovim",
 		Dependencies: []string{"python"},
 	}
 
-	actual.AddRequiredBy(newInfo.Dependencies[0], newInfo.Name, &i)
+	c.AddRequiredBy(new.Dependencies[0], new.Name)
 
-	python := actual["python"].RequiredBy
 	expected := []string{"neovim", "vim"}
+	actual := c.M["python"].RequiredBy
 
-	if !reflect.DeepEqual(python, expected) {
-		t.Fatalf("Expected %t but got %t", expected, python)
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("Expected %t but got %t", expected, actual)
 	}
 }
 
-func TestMap_RemoveRequiredBy(t *testing.T) {
+func TestCacheMap_RemoveRequiredBy(t *testing.T) {
 	info := []Info{
 		Info{
 			Name:         "vim",
@@ -114,26 +128,32 @@ func TestMap_RemoveRequiredBy(t *testing.T) {
 		},
 	}
 
-	brewfile := []string{"brew 'vim'", "brew 'python'"}
+	brewfile := []string{
+		"brew 'vim'",
+		"brew 'python'",
+	}
 
 	i := InfoCache(info)
 
-	actual := make(Map)
-	actual.FromBrewfile(brewfile, &i)
-	actual.ResolveDependencies(&i)
-
-	actual.RemoveRequiredBy("python", "vim", &i)
-
-	python := actual["python"].RequiredBy
-	expected := []string{}
-
-	if !reflect.DeepEqual(python, expected) {
-		t.Fatalf("Expected %t but got %t", expected, python)
+	c := CacheMap{
+		C: &i,
+		M: make(Map),
 	}
 
+	c.FromBrewfile(brewfile)
+	c.ResolveDependencies()
+
+	c.RemoveRequiredBy("python", "vim")
+
+	expected := []string{}
+	actual := c.M["python"].RequiredBy
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("Expected %t but got %t", expected, actual)
+	}
 }
 
-func TestMap_Add(t *testing.T) {
+func TestCacheMap_Add(t *testing.T) {
 	info := []Info{
 		Info{
 			Name:         "vim",
@@ -144,16 +164,23 @@ func TestMap_Add(t *testing.T) {
 
 	i := InfoCache(info)
 
-	actual := make(Map)
-	actual.Add("vim", "always", []string{"with-override-system-vim"}, &i)
+	actual := CacheMap{
+		C: &i,
+		M: make(Map),
+	}
 
-	expected := Map{
-		"vim": Entry{
-			Name:                 "vim",
-			RequiredDependencies: []string{"python"},
-			RestartService:       "true",
-			Args:                 []string{"with-override-system-vim"},
-			Info:                 info[0],
+	actual.Add("vim", "always", []string{"with-override-system-vim"})
+
+	expected := CacheMap{
+		C: &i,
+		M: Map{
+			"vim": Entry{
+				Name:                 "vim",
+				RequiredDependencies: []string{"python"},
+				RestartService:       "true",
+				Args:                 []string{"with-override-system-vim"},
+				Info:                 info[0],
+			},
 		},
 	}
 
@@ -162,7 +189,7 @@ func TestMap_Add(t *testing.T) {
 	}
 }
 
-func TestMap_Remove(t *testing.T) {
+func TestCacheMap_Remove(t *testing.T) {
 	info := []Info{
 		Info{
 			Name:         "vim",
@@ -172,12 +199,15 @@ func TestMap_Remove(t *testing.T) {
 	}
 
 	i := InfoCache(info)
+	c := CacheMap{
+		C: &i,
+		M: make(Map),
+	}
 
-	actual := make(Map)
-	actual.Add("vim", "always", []string{"with-override-system-vim"}, &i)
-	actual.Remove("vim", &i)
+	c.Add("vim", "always", []string{"with-override-system-vim"})
+	c.Remove("vim")
 
-	if _, present := actual["vim"]; present {
+	if _, present := c.M["vim"]; present {
 		t.Fatalf("Expected vim to not be present.")
 	}
 }

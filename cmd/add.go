@@ -120,9 +120,13 @@ bfm add -m Xcode -i 497799835
 			os.Exit(1)
 		}
 
-		brewMap := make(brew.Map)
-		brewMap.FromBrewfile(brewLines, &cache)
-		brewMap.ResolveDependencies(&cache)
+		cacheMap := brew.CacheMap{
+			C: &cache,
+			M: make(brew.Map),
+		}
+
+		cacheMap.FromBrewfile(brewLines)
+		cacheMap.ResolveDependencies()
 
 		if packageType == "tap" {
 			if !hasCorrectTapFormat(packageType) {
@@ -134,7 +138,7 @@ bfm add -m Xcode -i 497799835
 		}
 
 		if packageType == "brew" {
-			brewLines, err = addBrewPackage(packageToAdd, r, a, brewMap, &cache)
+			brewLines, err = addBrewPackage(packageToAdd, r, a, cacheMap)
 			if err != nil {
 				fmt.Println(err)
 				os.Exit(1)
@@ -171,15 +175,15 @@ bfm add -m Xcode -i 497799835
 	},
 }
 
-func addBrewPackage(add, restart string, args []string, m brew.Map, i *brew.InfoCache) ([]string, error) {
-	if err := m.Add(add, restart, args, i); err != nil {
+func addBrewPackage(add, restart string, args []string, cacheMap brew.CacheMap) ([]string, error) {
+	if err := cacheMap.Add(add, restart, args); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
 	lines := []string{}
 
-	for _, b := range m {
+	for _, b := range cacheMap.M {
 		entry, err := b.Format()
 		if err != nil {
 			return []string{}, err
