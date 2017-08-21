@@ -21,8 +21,11 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/spf13/cobra"
 	"regexp"
+
+	"github.com/lgug2z/bfm/brew"
+	"github.com/mitchellh/go-homedir"
+	"github.com/spf13/cobra"
 )
 
 func init() {
@@ -99,28 +102,48 @@ bfm add -m Xcode -i 497799835
 
 		lines := strings.Split(contents, "\n")
 
-		tap := getPackages("tap", lines)
-		brew := getPackages("brew", lines)
-		cask := getPackages("cask", lines)
-		mas := getPackages("mas", lines)
+		tapLines := getPackages("tap", lines)
+		brewLines := getPackages("brew", lines)
+		caskLines := getPackages("cask", lines)
+		masLines := getPackages("mas", lines)
+
+		var cache brew.InfoCache
+
+		home, err := homedir.Dir()
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		if err := cache.Read(fmt.Sprintf("%s/%s", home, ".brewInfo.json")); err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		brewMap := make(brew.Map)
+		brewMap.FromBrewfile(brewLines, &cache)
+		brewMap.ResolveDependencies(&cache)
 
 		if packageType == "tap" {
 			if !hasCorrectTapFormat(packageType) {
 				fmt.Printf("Unrecognised tap format. Use the format 'user/repo'.\n")
 				os.Exit(1)
 			}
-			tap = addPackage(packageType, packageToAdd, tap)
-			sort.Strings(tap)
+			tapLines = addPackage(packageType, packageToAdd, tapLines)
+			sort.Strings(tapLines)
 		}
 
 		if packageType == "brew" {
-			brew = addPackage(packageType, packageToAdd, brew)
-			sort.Strings(brew)
+			brewLines, err = addBrewPackage(packageToAdd, r, a, brewMap, &cache)
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
 		}
 
 		if packageType == "cask" {
-			cask = addPackage(packageType, packageToAdd, cask)
-			sort.Strings(cask)
+			caskLines = addPackage(packageType, packageToAdd, caskLines)
+			sort.Strings(caskLines)
 		}
 
 		if packageType == "mas" {
@@ -129,11 +152,11 @@ bfm add -m Xcode -i 497799835
 				os.Exit(1)
 			}
 
-			mas = addPackage(packageType, packageToAdd, mas)
-			sort.Strings(mas)
+			masLines = addPackage(packageType, packageToAdd, masLines)
+			sort.Strings(masLines)
 		}
 
-		newContents := constructFileContents(tap, brew, cask, mas)
+		newContents := constructFileContents(tapLines, brewLines, caskLines, masLines)
 
 		if d {
 			fmt.Println(newContents)
@@ -148,36 +171,41 @@ bfm add -m Xcode -i 497799835
 	},
 }
 
+func addBrewPackage(add, restart string, args []string, m brew.Map, i *brew.InfoCache) ([]string, error) {
+	if err := m.Add(add, restart, args, i); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	lines := []string{}
+
+	for _, b := range m {
+		entry, err := b.Format()
+		if err != nil {
+			return []string{}, err
+		}
+
+		lines = append(lines, entry)
+	}
+
+	sort.Strings(lines)
+	return lines, nil
+}
+
 func addPackage(packageType, newPackage string, packages []string) []string {
 	packageEntry := constructBaseEntry(packageType, newPackage)
-
-	if packageType == "brew" && hasArgs(a) {
-		packageEntry = appendArgs(packageEntry, a)
-	}
-
-	if packageType == "brew" && hasRestartService(r) {
-		packageEntry = appendRestartService(packageEntry, r)
-	}
 
 	if packageType == "mas" {
 		packageEntry = appendMasId(packageEntry, i)
 	}
 
-	fmt.Printf("Added %s '%s' to Brewfile.\n", packageType, newPackage)
+	fmt.Printf("Added %s %s to Brewfile.\n", packageType, newPackage)
 	return append(packages, packageEntry)
 }
 
 func hasCorrectTapFormat(tap string) bool {
 	result, _ := regexp.MatchString(`.+/.+`, tap)
 	return result
-}
-
-func hasArgs(a []string) bool {
-	return len(a) > 0
-}
-
-func hasRestartService(r string) bool {
-	return len(r) > 0
 }
 
 func hasMasId(i string) bool {

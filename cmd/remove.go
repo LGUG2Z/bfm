@@ -21,6 +21,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/lgug2z/bfm/brew"
+	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 )
 
@@ -79,32 +81,52 @@ bfm remove -m Xcode
 
 		lines := strings.Split(contents, "\n")
 
-		tap := getPackages("tap", lines)
-		brew := getPackages("brew", lines)
-		cask := getPackages("cask", lines)
-		mas := getPackages("mas", lines)
+		tapLines := getPackages("tap", lines)
+		brewLines := getPackages("brew", lines)
+		caskLines := getPackages("cask", lines)
+		masLines := getPackages("mas", lines)
+
+		var cache brew.InfoCache
+
+		home, err := homedir.Dir()
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		if err := cache.Read(fmt.Sprintf("%s/%s", home, ".brewInfo.json")); err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		brewMap := make(brew.Map)
+		brewMap.FromBrewfile(brewLines, &cache)
+		brewMap.ResolveDependencies(&cache)
 
 		if packageType == "tap" {
-			tap = removePackage(packageType, packageToRemove, tap)
-			sort.Strings(tap)
+			tapLines = removePackage(packageType, packageToRemove, tapLines)
+			sort.Strings(tapLines)
 		}
 
 		if packageType == "brew" {
-			brew = removePackage(packageType, packageToRemove, brew)
-			sort.Strings(brew)
+			brewLines, err = removeBrewPackage(packageToRemove, brewMap, &cache)
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
 		}
 
 		if packageType == "cask" {
-			cask = removePackage(packageType, packageToRemove, cask)
-			sort.Strings(cask)
+			caskLines = removePackage(packageType, packageToRemove, caskLines)
+			sort.Strings(caskLines)
 		}
 
 		if packageType == "mas" {
-			mas = removePackage(packageType, packageToRemove, mas)
-			sort.Strings(mas)
+			masLines = removePackage(packageType, packageToRemove, masLines)
+			sort.Strings(masLines)
 		}
 
-		newContents := constructFileContents(tap, brew, cask, mas)
+		newContents := constructFileContents(tapLines, brewLines, caskLines, masLines)
 
 		if d {
 			fmt.Println(newContents)
@@ -117,6 +139,27 @@ bfm remove -m Xcode
 			f.WriteString(newContents)
 		}
 	},
+}
+
+func removeBrewPackage(remove string, m brew.Map, i *brew.InfoCache) ([]string, error) {
+	if err := m.Remove(remove, i); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	lines := []string{}
+
+	for _, b := range m {
+		entry, err := b.Format()
+		if err != nil {
+			return []string{}, err
+		}
+
+		lines = append(lines, entry)
+	}
+
+	sort.Strings(lines)
+	return lines, nil
 }
 
 func removePackage(packageType, packageToRemove string, packages []string) []string {

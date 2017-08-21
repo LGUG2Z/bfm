@@ -46,7 +46,7 @@ func Execute() {
 
 var (
 	t, b, c, m, d bool
-	location   string
+	location      string
 )
 
 func init() {
