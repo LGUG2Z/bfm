@@ -20,7 +20,6 @@ var _ = Describe("Clean", func() {
 			cache              brew.InfoCache
 			packages           brewfile.Packages
 			bf, info, contents string
-			flags              Flags
 		)
 
 		BeforeEach(func() {
@@ -50,9 +49,7 @@ cask 'firefox'
 				Mas:  []string{"mas 'Xcode', id: 497799835"},
 			}
 
-			flags = Flags{false}
-
-			Clean([]string{}, &packages, cache, bf, info, flags)
+			Clean([]string{}, &packages, cache, bf, info, Flags{DryRun: false})
 
 			Expect(packages).To(Equal(expectedPackages))
 		})
@@ -68,8 +65,7 @@ cask 'google-chrome'
 
 mas 'Xcode', id: 497799835`
 
-			flags = Flags{false}
-			Clean([]string{}, &packages, cache, bf, info, flags)
+			Clean([]string{}, &packages, cache, bf, info, Flags{DryRun: false})
 
 			bytes, error := ioutil.ReadFile(bf)
 			Expect(error).To(BeNil())
@@ -78,12 +74,33 @@ mas 'Xcode', id: 497799835`
 		})
 
 		It("Should not modify the existing Brewfile if the --dry-run flag is set", func() {
-			flags = Flags{true}
-			Clean([]string{}, &packages, cache, bf, info, flags)
+			_ = captureStdout(func() {
+				Clean([]string{}, &packages, cache, bf, info, Flags{DryRun: true})
+			})
+
 			bytes, error := ioutil.ReadFile(bf)
 			Expect(error).To(BeNil())
 
 			Expect(bytes).To(Equal([]byte(contents)))
+		})
+
+		It("Should output the cleaned Brewfile contents to stdout", func() {
+			expectedOutput := `tap 'homebrew/bundle'
+tap 'homebrew/core'
+
+brew 'a2ps'
+
+cask 'firefox'
+cask 'google-chrome'
+
+mas 'Xcode', id: 497799835
+`
+
+			output := captureStdout(func() {
+				Clean([]string{}, &packages, cache, bf, info, Flags{DryRun: true})
+			})
+
+			Expect(output).To(Equal(expectedOutput))
 		})
 	})
 
