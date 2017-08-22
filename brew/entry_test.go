@@ -1,105 +1,94 @@
-package brew
+package brew_test
 
 import (
-	"reflect"
-	"testing"
+	. "github.com/lgug2z/bfm/brew"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
-func TestEntry_FromInfo(t *testing.T) {
-	i := Info{
-		FullName:                "a",
-		Dependencies:            []string{"b", "c", "d", "e", "f"},
-		OptionalDependencies:    []string{"c"},
-		BuildDependencies:       []string{"d"},
-		RecommendedDependencies: []string{"e", "f"},
-	}
+var _ = Describe("Entry", func() {
+	var (
+		infoMixedDependencies Info
+		actual                Entry
+	)
 
-	expected := Entry{
-		Name:                 "a",
-		RequiredDependencies: []string{"b"},
-		Info: Info{
+	BeforeEach(func() {
+		infoMixedDependencies = Info{
 			FullName:                "a",
 			Dependencies:            []string{"b", "c", "d", "e", "f"},
 			OptionalDependencies:    []string{"c"},
 			BuildDependencies:       []string{"d"},
 			RecommendedDependencies: []string{"e", "f"},
-		},
-	}
+		}
+	})
 
-	actual := Entry{}
-	actual.FromInfo(i)
+	Describe("With a valid Info object returned from the InfoCache", func() {
+		It("Populates all the fields of an Entry", func() {
+			expected := Entry{
+				Name:                    "a",
+				RequiredDependencies:    []string{"b"},
+				OptionalDependencies:    []string{"c"},
+				BuildDependencies:       []string{"d"},
+				RecommendedDependencies: []string{"e", "f"},
+				Info: infoMixedDependencies,
+			}
 
-	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("Expected %t but got %t", expected, actual)
-	}
-}
+			actual.FromInfo(infoMixedDependencies)
+			Expect(actual).To(Equal(expected))
+		})
+	})
 
-func TestEntry_DetermineReqDeps(t *testing.T) {
-	i := Info{
-		Dependencies: []string{"b"},
-	}
+	It("Determines all the dependencies of an Entry from its Info", func() {
 
-	e := Entry{
-		Info: i,
-	}
+		expected := Entry{
+			Name:                    "a",
+			RequiredDependencies:    []string{"b"},
+			OptionalDependencies:    []string{"c"},
+			BuildDependencies:       []string{"d"},
+			RecommendedDependencies: []string{"e", "f"},
+			Info: infoMixedDependencies,
+		}
 
-	e.DetermineReqDeps()
+		actual = Entry{
+			Name: "a",
+			Info: infoMixedDependencies,
+		}
 
-	actual := e.RequiredDependencies
-	expected := []string{"b"}
+		actual.DetermineDependencies()
+		Expect(actual).To(Equal(expected))
+	})
 
-	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("Expected %t but got %t", expected, e)
-	}
-}
+	Describe("With a populated Entry", func() {
+		It("Formats the Entry with a package name as a Brewfile-compliant line entry", func() {
+			expected := `brew 'vim'`
+			entry := Entry{Name: "vim"}
 
-func TestEntry_DetermineReqDepsMixed(t *testing.T) {
-	i := Info{
-		Dependencies:            []string{"b", "c", "d", "e", "f"},
-		OptionalDependencies:    []string{"c"},
-		BuildDependencies:       []string{"d"},
-		RecommendedDependencies: []string{"e", "f"},
-	}
+			actual, error := entry.Format()
+			Expect(error).To(BeNil())
 
-	e := Entry{
-		Info: i,
-	}
+			Expect(actual).To(Equal(expected))
+		})
 
-	e.DetermineReqDeps()
+		It("Formats the Entry with a package name, args and restart-service as a Brewfile-compliant line entry", func() {
+			expected := `brew 'vim', args: ['HEAD'], restart_service: :changed`
+			entry := Entry{Name: "vim", RestartService: ":changed", Args: []string{"HEAD"}}
 
-	actual := e.RequiredDependencies
-	expected := []string{"b"}
+			actual, error := entry.Format()
+			Expect(error).To(BeNil())
 
-	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("Expected %t but got %t", expected, e)
-	}
-}
+			Expect(actual).To(Equal(expected))
+		})
 
-func TestEntry_Format(t *testing.T) {
-	e := Entry{
-		Name: "a",
-	}
+		It("Formats the Entry with a comment specifying which other packages it is required by", func() {
+			expected := `brew 'vim' # required by: developers`
+			entry := Entry{Name: "vim", RequiredBy: []string{"developers"}}
 
-	expected := `brew 'a'`
-	actual, _ := e.Format()
+			actual, error := entry.Format()
+			Expect(error).To(BeNil())
 
-	if expected != actual {
-		t.Fatalf("Expected %t but got %t", expected, e)
-	}
-}
+			Expect(actual).To(Equal(expected))
+		})
+	})
 
-func TestEntry_FormatWithArgsRestartServiceAndRequiredBy(t *testing.T) {
-	e := Entry{
-		Name:           "a",
-		Args:           []string{"with-tests"},
-		RestartService: ":changed",
-		RequiredBy:     []string{"z", "y"},
-	}
-
-	expected := `brew 'a', args: ['with-tests'], restart_service: :changed # required by: z, y`
-	actual, _ := e.Format()
-
-	if expected != actual {
-		t.Fatalf("Expected %t but got %t", expected, e)
-	}
-}
+})

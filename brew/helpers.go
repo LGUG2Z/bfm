@@ -1,13 +1,5 @@
 package brew
 
-func hasArgs(a []string) bool {
-	return len(a) > 0
-}
-
-func hasRestartService(r string) bool {
-	return len(r) > 0
-}
-
 func contains(s []string, e string) bool {
 	for _, a := range s {
 		if a == e {
