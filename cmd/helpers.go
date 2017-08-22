@@ -72,30 +72,30 @@ func getPackages(packageType string, lines []string) []string {
 	return packages
 }
 
-func constructFileContents(tap, brew, cask, mas []string) string {
-	lines := []string{}
-
-	for _, line := range tap {
-		lines = append(lines, line)
-	}
-
-	lines = append(lines, "")
-
-	for _, line := range brew {
-		lines = append(lines, line)
-	}
-
-	lines = append(lines, "")
-
-	for _, line := range cask {
-		lines = append(lines, line)
-	}
-
-	lines = append(lines, "")
-
-	for _, line := range mas {
-		lines = append(lines, line)
-	}
-
-	return strings.Join(lines, "\n")
-}
+//func constructFileContents(tap, brew, cask, mas []string) string {
+//	lines := []string{}
+//
+//	for _, line := range tap {
+//		lines = append(lines, line)
+//	}
+//
+//	lines = append(lines, "")
+//
+//	for _, line := range brew {
+//		lines = append(lines, line)
+//	}
+//
+//	lines = append(lines, "")
+//
+//	for _, line := range cask {
+//		lines = append(lines, line)
+//	}
+//
+//	lines = append(lines, "")
+//
+//	for _, line := range mas {
+//		lines = append(lines, line)
+//	}
+//
+//	return strings.Join(lines, "\n")
+//}

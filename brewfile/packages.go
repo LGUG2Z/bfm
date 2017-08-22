@@ -2,6 +2,7 @@ package brewfile
 
 import (
 	"io/ioutil"
+	"sort"
 	"strings"
 )
 
@@ -21,6 +22,11 @@ func (p *Packages) FromBrewfile(brewfilePath string) error {
 	p.Brew = separate("brew", lines)
 	p.Cask = separate("cask", lines)
 	p.Mas = separate("mas", lines)
+
+	sort.Strings(p.Tap)
+	sort.Strings(p.Brew)
+	sort.Strings(p.Cask)
+	sort.Strings(p.Mas)
 
 	return nil
 }

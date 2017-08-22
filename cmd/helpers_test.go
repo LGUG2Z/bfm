@@ -138,23 +138,23 @@ func TestGetPackages(t *testing.T) {
 	}
 }
 
-func TestConstructFileContents(t *testing.T) {
-	tap := []string{"tap 'homebrew/bundle'"}
-	brew := []string{"brew 'vim', args: ['with-python3']"}
-	cask := []string{"cask 'macvim'"}
-	mas := []string{"mas 'Xcode', id: 49779983"}
-
-	expected := `tap 'homebrew/bundle'
-
-brew 'vim', args: ['with-python3']
-
-cask 'macvim'
-
-mas 'Xcode', id: 49779983`
-
-	actual := constructFileContents(tap, brew, cask, mas)
-
-	if actual != expected {
-		t.Fatalf("Expected %s but got %s", expected, actual)
-	}
-}
+//func TestConstructFileContents(t *testing.T) {
+//	tap := []string{"tap 'homebrew/bundle'"}
+//	brew := []string{"brew 'vim', args: ['with-python3']"}
+//	cask := []string{"cask 'macvim'"}
+//	mas := []string{"mas 'Xcode', id: 49779983"}
+//
+//	expected := `tap 'homebrew/bundle'
+//
+//brew 'vim', args: ['with-python3']
+//
+//cask 'macvim'
+//
+//mas 'Xcode', id: 49779983`
+//
+//	actual := constructFileContents(tap, brew, cask, mas)
+//
+//	if actual != expected {
+//		t.Fatalf("Expected %s but got %s", expected, actual)
+//	}
+//}

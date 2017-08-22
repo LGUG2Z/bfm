@@ -19,9 +19,12 @@ import (
 
 	"os"
 
-	"github.com/spf13/cobra"
 	"io/ioutil"
-	"strings"
+	"sort"
+
+	"github.com/lgug2z/bfm/brew"
+	"github.com/lgug2z/bfm/brewfile"
+	"github.com/spf13/cobra"
 )
 
 var cleanFlags struct {
@@ -49,28 +52,46 @@ flag if using bfm for the first time.
 `,
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		contents, err := readFileContents(brewfilePath)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
+		var packages brewfile.Packages
+		error := packages.FromBrewfile(brewfilePath)
+		errorExit(error)
 
-		lines := strings.Split(contents, "\n")
+		var cache brew.InfoCache
+		error = cache.Read(brewInfoPath)
+		errorExit(error)
 
-		tap := getPackages("tap", lines)
-		brew := getPackages("brew", lines)
-		cask := getPackages("cask", lines)
-		mas := getPackages("mas", lines)
+		cacheMap := brew.CacheMap{Cache: &cache, Map: make(brew.Map)}
+		cacheMap.FromPackages(packages.Brew)
+		cacheMap.ResolveRequiredDependencyMap()
 
-		newContents := constructFileContents(tap, brew, cask, mas)
+		cleanBrews, error := cleanBrews(cacheMap)
+		errorExit(error)
+
+		packages.Brew = cleanBrews
 
 		if cleanFlags.dryRun {
-			fmt.Println(newContents)
+			fmt.Println(string(packages.Bytes()))
 		} else {
-			if err := ioutil.WriteFile(brewfilePath, []byte(newContents), 0644); err != nil {
+			if err := ioutil.WriteFile(brewfilePath, packages.Bytes(), 0644); err != nil {
 				fmt.Print(err)
 				os.Exit(1)
 			}
 		}
 	},
+}
+
+func cleanBrews(cacheMap brew.CacheMap) ([]string, error) {
+	clean := []string{}
+
+	for _, b := range cacheMap.Map {
+		entry, err := b.Format()
+		if err != nil {
+			return []string{}, err
+		}
+
+		clean = append(clean, entry)
+	}
+
+	sort.Strings(clean)
+	return clean, nil
 }

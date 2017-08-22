@@ -86,9 +86,8 @@ type Info struct {
 
 type InfoCache []Info
 
-func (i *InfoCache) Refresh(file string) error {
-	info := exec.Command("brew", "info", "--all", "--json=v1")
-	b, err := info.Output()
+func (i *InfoCache) Refresh(file string, command *exec.Cmd) error {
+	b, err := command.Output()
 	if err != nil {
 		return err
 	}
@@ -102,7 +101,7 @@ func (i *InfoCache) Refresh(file string) error {
 
 func (i *InfoCache) Read(file string) error {
 	if _, err := os.Stat(file); os.IsNotExist(err) {
-		i.Refresh(file)
+		i.Refresh(file, exec.Command("brew", "info", "--all", "--json=v1"))
 	}
 
 	b, err := ioutil.ReadFile(file)

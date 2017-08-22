@@ -1,7 +1,1 @@
-[
-  {
-    "name": "a2ps",
-    "full_name": "a2ps",
-    "desc": "Any-to-PostScript filter"
-  }
-]
+[ { "name": "a2ps", "full_name": "a2ps", "desc": "Any-to-PostScript filter" } ]
