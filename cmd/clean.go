@@ -20,12 +20,17 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"io/ioutil"
 	"strings"
 )
 
+var cleanFlags struct {
+	dryRun bool
+}
+
 func init() {
 	RootCmd.AddCommand(cleanCmd)
-	cleanCmd.Flags().BoolVarP(&d, "dry-run", "d", false, "conduct a dry run without modifying the Brewfile")
+	cleanCmd.Flags().BoolVarP(&cleanFlags.dryRun, "dry-run", "d", false, "conduct a dry run without modifying the Brewfile")
 }
 
 // cleanCmd represents the clean command
@@ -44,7 +49,7 @@ flag if using bfm for the first time.
 `,
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		contents, err := readFileContents(location)
+		contents, err := readFileContents(brewfilePath)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -59,15 +64,13 @@ flag if using bfm for the first time.
 
 		newContents := constructFileContents(tap, brew, cask, mas)
 
-		if d {
+		if cleanFlags.dryRun {
 			fmt.Println(newContents)
 		} else {
-			f, err := os.Create(location)
-			if err != nil {
+			if err := ioutil.WriteFile(brewfilePath, []byte(newContents), 0644); err != nil {
 				fmt.Print(err)
+				os.Exit(1)
 			}
-
-			f.WriteString(newContents)
 		}
 	},
 }

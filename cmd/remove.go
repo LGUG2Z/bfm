@@ -21,20 +21,28 @@ import (
 	"sort"
 	"strings"
 
+	"io/ioutil"
+
 	"github.com/lgug2z/bfm/brew"
-	"github.com/mitchellh/go-homedir"
+	"github.com/lgug2z/bfm/brewfile"
 	"github.com/spf13/cobra"
 )
+
+var removeFlags struct {
+	brew, tap, cask, mas, dryRun, removeAll, removePackageAndRequired bool
+}
 
 func init() {
 	RootCmd.AddCommand(removeCmd)
 
-	removeCmd.Flags().BoolVarP(&d, "dry-run", "d", false, "conduct a dry run without modifying the Brewfile")
+	removeCmd.Flags().BoolVarP(&removeFlags.dryRun, "dry-run", "d", false, "conduct a dry run without modifying the Brewfile")
 
-	removeCmd.Flags().BoolVarP(&t, "tap", "t", false, "remove a tap")
-	removeCmd.Flags().BoolVarP(&b, "brew", "b", false, "remove a brew package")
-	removeCmd.Flags().BoolVarP(&c, "cask", "c", false, "remove a cask")
-	removeCmd.Flags().BoolVarP(&m, "mas", "m", false, "remove a mas app")
+	removeCmd.Flags().BoolVarP(&removeFlags.tap, "tap", "t", false, "remove a tap")
+	removeCmd.Flags().BoolVarP(&removeFlags.brew, "brew", "b", false, "remove a brew package")
+	removeCmd.Flags().BoolVarP(&removeFlags.cask, "cask", "c", false, "remove a cask")
+	removeCmd.Flags().BoolVarP(&removeFlags.mas, "mas", "m", false, "remove a mas app")
+	removeCmd.Flags().BoolVar(&removeFlags.removeAll, "all-unused", false, "remove brew package and its unused required, recommended, optional and build dependencies")
+	removeCmd.Flags().BoolVar(&removeFlags.removePackageAndRequired, "required-unused", false, "remove brew package and its unused required dependencies")
 }
 
 // removeCmd represents the remove command
@@ -60,100 +68,82 @@ bfm remove -m Xcode
 `,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if !flagProvided(t, b, c, m) {
+		if !flagProvided(removeFlags.tap, removeFlags.brew, removeFlags.cask, removeFlags.mas) {
 			fmt.Println("A package type must be specified. See 'bfm remove --help'.")
 			os.Exit(1)
 		}
 
-		packageToRemove := args[0]
-		packageType := getPackageType(t, b, c, m)
+		toRemove := args[0]
+		packageType := getPackageType(removeFlags.tap, removeFlags.brew, removeFlags.cask, removeFlags.mas)
 
-		contents, err := readFileContents(location)
-		if err != nil {
-			fmt.Println(err)
+		var packages brewfile.Packages
+		error := packages.FromBrewfile(brewfilePath)
+		errorExit(error)
+
+		if !entryExists(string(packages.Bytes()), packageType, toRemove) {
+			fmt.Printf("%s '%s' not found in the Brewfile.\n", packageType, toRemove)
 			os.Exit(1)
 		}
-
-		if !entryExists(contents, packageType, packageToRemove) {
-			fmt.Printf("%s '%s' not found in the Brewfile.\n", packageType, packageToRemove)
-			os.Exit(1)
-		}
-
-		lines := strings.Split(contents, "\n")
-
-		tapLines := getPackages("tap", lines)
-		brewLines := getPackages("brew", lines)
-		caskLines := getPackages("cask", lines)
-		masLines := getPackages("mas", lines)
 
 		var cache brew.InfoCache
+		error = cache.Read(brewInfoPath)
+		errorExit(error)
 
-		home, err := homedir.Dir()
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+		cacheMap := brew.CacheMap{Cache: &cache, Map: make(brew.Map)}
+		cacheMap.FromPackages(packages.Brew)
+		cacheMap.ResolveRequiredDependencyMap()
+
+		if removeFlags.tap {
+			packages.Tap = removePackage(packageType, toRemove, packages.Tap)
+			sort.Strings(packages.Tap)
 		}
 
-		if err := cache.Read(fmt.Sprintf("%s/%s", home, ".brewInfo.json")); err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+		if removeFlags.brew {
+			updated, error := removeBrewPackage(toRemove, cacheMap)
+			errorExit(error)
+			packages.Brew = updated
 		}
 
-		cacheMap := brew.CacheMap{
-			C: &cache,
-			M: make(brew.Map),
+		if removeFlags.cask {
+			packages.Cask = removePackage(packageType, toRemove, packages.Cask)
+			sort.Strings(packages.Cask)
 		}
 
-		cacheMap.FromBrewfile(brewLines)
-		cacheMap.ResolveDependencies()
-
-		if packageType == "tap" {
-			tapLines = removePackage(packageType, packageToRemove, tapLines)
-			sort.Strings(tapLines)
+		if removeFlags.mas {
+			packages.Mas = removePackage(packageType, toRemove, packages.Mas)
+			sort.Strings(packages.Mas)
 		}
 
-		if packageType == "brew" {
-			brewLines, err = removeBrewPackage(packageToRemove, cacheMap)
-			if err != nil {
-				fmt.Println(err)
-				os.Exit(1)
-			}
-		}
-
-		if packageType == "cask" {
-			caskLines = removePackage(packageType, packageToRemove, caskLines)
-			sort.Strings(caskLines)
-		}
-
-		if packageType == "mas" {
-			masLines = removePackage(packageType, packageToRemove, masLines)
-			sort.Strings(masLines)
-		}
-
-		newContents := constructFileContents(tapLines, brewLines, caskLines, masLines)
-
-		if d {
-			fmt.Println(newContents)
+		if removeFlags.dryRun {
+			fmt.Println(string(packages.Bytes()))
 		} else {
-			f, err := os.Create(location)
-			if err != nil {
-				fmt.Print(err)
-			}
-
-			f.WriteString(newContents)
+			error := ioutil.WriteFile(brewfilePath, packages.Bytes(), 0644)
+			errorExit(error)
 		}
 	},
 }
 
 func removeBrewPackage(remove string, cacheMap brew.CacheMap) ([]string, error) {
-	if err := cacheMap.Remove(remove); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+	if removeFlags.removeAll {
+		if err := cacheMap.Remove(remove, brew.RemoveAll); err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+	} else if removeFlags.removePackageAndRequired {
+		if err := cacheMap.Remove(remove, brew.RemovePackageAndRequired); err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+	} else {
+		if err := cacheMap.Remove(remove, brew.RemovePackageOnly); err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
 	}
 
 	lines := []string{}
 
-	for _, b := range cacheMap.M {
+	for _, b := range cacheMap.Map {
 		entry, err := b.Format()
 		if err != nil {
 			return []string{}, err

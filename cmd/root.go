@@ -45,8 +45,8 @@ func Execute() {
 }
 
 var (
-	t, b, c, m, d bool
-	location      string
+	brewfilePath string
+	brewInfoPath string
 )
 
 func init() {
@@ -69,11 +69,12 @@ func initConfig() {
 		// Search config in home directory with name ".bfm" (without extension).
 		viper.AddConfigPath(home)
 		viper.SetConfigName(".bfm")
-	}
 
-	viper.SetEnvPrefix("bfm")
-	viper.AutomaticEnv() // read in environment variables that match
-	location = viper.GetString("brewfile")
+		viper.SetEnvPrefix("bfm")
+		viper.AutomaticEnv() // read in environment variables that match
+		brewfilePath = viper.GetString("brewfile")
+		brewInfoPath = fmt.Sprintf("%s/%s", home, ".brewInfo.json")
+	}
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {

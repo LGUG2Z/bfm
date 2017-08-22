@@ -22,13 +22,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var checkFlags struct {
+	brew, cask, tap, mas bool
+}
+
 func init() {
 	RootCmd.AddCommand(checkCmd)
 
-	checkCmd.Flags().BoolVarP(&t, "tap", "t", false, "check a tap")
-	checkCmd.Flags().BoolVarP(&b, "brew", "b", false, "check a brew package")
-	checkCmd.Flags().BoolVarP(&c, "cask", "c", false, "check a cask")
-	checkCmd.Flags().BoolVarP(&m, "mas", "m", false, "check a mas app")
+	checkCmd.Flags().BoolVarP(&checkFlags.tap, "tap", "t", false, "check a tap")
+	checkCmd.Flags().BoolVarP(&checkFlags.brew, "brew", "b", false, "check a brew package")
+	checkCmd.Flags().BoolVarP(&checkFlags.cask, "cask", "c", false, "check a cask")
+	checkCmd.Flags().BoolVarP(&checkFlags.mas, "mas", "m", false, "check a mas app")
 }
 
 // checkCmd represents the check command
@@ -51,15 +55,15 @@ bfm check -m Xcode
 `,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if !flagProvided(t, b, c, m) {
+		if !flagProvided(checkFlags.tap, checkFlags.brew, checkFlags.cask, checkFlags.mas) {
 			fmt.Println("A package type must be specified. See 'bfm check --help'.")
 			os.Exit(1)
 		}
 
 		packageToCheck := args[0]
-		packageType := getPackageType(t, b, c, m)
+		packageType := getPackageType(checkFlags.tap, checkFlags.brew, checkFlags.cask, checkFlags.mas)
 
-		contents, err := readFileContents(location)
+		contents, err := readFileContents(brewfilePath)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)

@@ -3,8 +3,16 @@ package cmd
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"strings"
 )
+
+func errorExit(err error) {
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+}
 
 func readFileContents(location string) (string, error) {
 	bytes, err := ioutil.ReadFile(location)

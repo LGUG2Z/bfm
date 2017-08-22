@@ -25,7 +25,7 @@ func TestHasCorrectTapFormatFalse(t *testing.T) {
 
 func TestHasMasIdWithArg(t *testing.T) {
 	r := "with"
-	actual := hasMasId(r)
+	actual := hasMasID(r)
 	expected := true
 
 	if actual != expected {
@@ -35,7 +35,7 @@ func TestHasMasIdWithArg(t *testing.T) {
 
 func TestHasMasIdWithNoArg(t *testing.T) {
 	r := ""
-	actual := hasMasId(r)
+	actual := hasMasID(r)
 	expected := false
 
 	if actual != expected {
@@ -43,39 +43,9 @@ func TestHasMasIdWithNoArg(t *testing.T) {
 	}
 }
 
-func TestAppendArgs(t *testing.T) {
-	a := []string{"one", "two"}
-	actual := appendArgs("brew 'bfm'", a)
-	expected := "brew 'bfm', args: ['one', 'two']"
-
-	if actual != expected {
-		t.Fatalf("Expected %s but got %s", expected, actual)
-	}
-}
-
-func TestAppendRestartServiceAlways(t *testing.T) {
-	r := "always"
-	actual := appendRestartService("brew 'bfm'", r)
-	expected := "brew 'bfm', restart_service: true"
-
-	if actual != expected {
-		t.Fatalf("Expected %s but got %s", expected, actual)
-	}
-}
-
-func TestAppendRestartServiceChanged(t *testing.T) {
-	r := "changed"
-	actual := appendRestartService("brew 'bfm'", r)
-	expected := "brew 'bfm', restart_service: :changed"
-
-	if actual != expected {
-		t.Fatalf("Expected %s but got %s", expected, actual)
-	}
-}
-
 func TestAppendMasId(t *testing.T) {
 	i := "1235644"
-	actual := appendMasId("mas 'bfm'", i)
+	actual := appendMasID("mas 'bfm'", i)
 	expected := "mas 'bfm', id: 1235644"
 
 	if actual != expected {
