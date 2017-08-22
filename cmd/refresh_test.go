@@ -14,7 +14,7 @@ import (
 )
 
 var _ = Describe("Refresh", func() {
-	Describe("When the refresh command is called", func() {
+	Describe("When the command is called", func() {
 		It("It should populate the file from the output of the given command and write it to disk", func() {
 			command := exec.Command("echo", `[ { "name": "a2ps", "full_name": "a2ps", "desc": "Any-to-PostScript filter" } ]`)
 			testFile := fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "/src/github.com/lgug2z/bfm/testData/refreshTest.json")

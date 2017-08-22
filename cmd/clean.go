@@ -27,13 +27,19 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var cleanFlags struct {
-	dryRun bool
+type Flags struct {
+	Brew, Tap, Cask, Mas, DryRun        bool
+	Args                                []string
+	RestartService, MasID               string
+	AddPackageAndRequired, AddAll       bool
+	RemovePackageAndRequired, RemoveAll bool
 }
+
+var cleanFlags Flags
 
 func init() {
 	RootCmd.AddCommand(cleanCmd)
-	cleanCmd.Flags().BoolVarP(&cleanFlags.dryRun, "dry-run", "d", false, "conduct a dry run without modifying the Brewfile")
+	cleanCmd.Flags().BoolVarP(&cleanFlags.DryRun, "dry-run", "d", false, "conduct a dry run without modifying the Brewfile")
 }
 
 // cleanCmd represents the clean command
@@ -52,32 +58,36 @@ flag if using bfm for the first time.
 `,
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		var packages brewfile.Packages
-		error := packages.FromBrewfile(brewfilePath)
-		errorExit(error)
-
 		var cache brew.InfoCache
-		error = cache.Read(brewInfoPath)
-		errorExit(error)
-
-		cacheMap := brew.CacheMap{Cache: &cache, Map: make(brew.Map)}
-		cacheMap.FromPackages(packages.Brew)
-		cacheMap.ResolveRequiredDependencyMap()
-
-		cleanBrews, error := cleanBrews(cacheMap)
-		errorExit(error)
-
-		packages.Brew = cleanBrews
-
-		if cleanFlags.dryRun {
-			fmt.Println(string(packages.Bytes()))
-		} else {
-			if err := ioutil.WriteFile(brewfilePath, packages.Bytes(), 0644); err != nil {
-				fmt.Print(err)
-				os.Exit(1)
-			}
-		}
+		var packages brewfile.Packages
+		Clean(args, &packages, cache, brewfilePath, brewInfoPath, cleanFlags)
 	},
+}
+
+func Clean(args []string, packages *brewfile.Packages, cache brew.InfoCache, brewfilePath, brewInfoPath string, flags Flags) {
+	error := packages.FromBrewfile(brewfilePath)
+	errorExit(error)
+
+	error = cache.Read(brewInfoPath)
+	errorExit(error)
+
+	cacheMap := brew.CacheMap{Cache: &cache, Map: make(brew.Map)}
+	cacheMap.FromPackages(packages.Brew)
+	cacheMap.ResolveRequiredDependencyMap()
+
+	cleanBrews, error := cleanBrews(cacheMap)
+	errorExit(error)
+
+	packages.Brew = cleanBrews
+
+	if flags.DryRun {
+		fmt.Println(string(packages.Bytes()))
+	} else {
+		if err := ioutil.WriteFile(brewfilePath, packages.Bytes(), 0644); err != nil {
+			fmt.Print(err)
+			os.Exit(1)
+		}
+	}
 }
 
 func cleanBrews(cacheMap brew.CacheMap) ([]string, error) {
