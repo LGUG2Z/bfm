@@ -103,7 +103,7 @@ func Remove(args []string, packages *brewfile.Packages, cache brew.InfoCache, br
 	}
 
 	if flags.Brew {
-		updated, error := removeBrewPackage(toRemove, cacheMap)
+		updated, error := removeBrewPackage(toRemove, cacheMap, flags)
 		if error != nil {
 			return error
 		}
@@ -131,13 +131,13 @@ func Remove(args []string, packages *brewfile.Packages, cache brew.InfoCache, br
 	return nil
 }
 
-func removeBrewPackage(remove string, cacheMap brew.CacheMap) ([]string, error) {
-	if removeFlags.RemoveAll {
+func removeBrewPackage(remove string, cacheMap brew.CacheMap, flags Flags) ([]string, error) {
+	if flags.RemoveAll {
 		if err := cacheMap.Remove(remove, brew.RemoveAll); err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-	} else if removeFlags.RemovePackageAndRequired {
+	} else if flags.RemovePackageAndRequired {
 		if err := cacheMap.Remove(remove, brew.RemovePackageAndRequired); err != nil {
 			fmt.Println(err)
 			os.Exit(1)
