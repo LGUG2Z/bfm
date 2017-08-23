@@ -66,59 +66,69 @@ bfm remove -m Xcode
 `,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if !flagProvided(removeFlags) {
-			fmt.Println("A package type must be specified. See 'bfm remove --help'.")
-			os.Exit(1)
-		}
-
-		toRemove := args[0]
-		packageType := getPackageType(removeFlags)
-
 		var packages brewfile.Packages
-		error := packages.FromBrewfile(brewfilePath)
-		errorExit(error)
-
-		if !entryExists(string(packages.Bytes()), packageType, toRemove) {
-			fmt.Printf("%s '%s' not found in the Brewfile.\n", packageType, toRemove)
-			os.Exit(1)
-		}
-
 		var cache brew.InfoCache
-		error = cache.Read(brewInfoPath)
+		error := Remove(args, &packages, cache, brewfilePath, brewInfoPath, removeFlags)
 		errorExit(error)
-
-		cacheMap := brew.CacheMap{Cache: &cache, Map: make(brew.Map)}
-		cacheMap.FromPackages(packages.Brew)
-		cacheMap.ResolveRequiredDependencyMap()
-
-		if removeFlags.Tap {
-			packages.Tap = removePackage(packageType, toRemove, packages.Tap)
-			sort.Strings(packages.Tap)
-		}
-
-		if removeFlags.Brew {
-			updated, error := removeBrewPackage(toRemove, cacheMap)
-			errorExit(error)
-			packages.Brew = updated
-		}
-
-		if removeFlags.Cask {
-			packages.Cask = removePackage(packageType, toRemove, packages.Cask)
-			sort.Strings(packages.Cask)
-		}
-
-		if removeFlags.Mas {
-			packages.Mas = removePackage(packageType, toRemove, packages.Mas)
-			sort.Strings(packages.Mas)
-		}
-
-		if removeFlags.DryRun {
-			fmt.Println(string(packages.Bytes()))
-		} else {
-			error := ioutil.WriteFile(brewfilePath, packages.Bytes(), 0644)
-			errorExit(error)
-		}
 	},
+}
+
+func Remove(args []string, packages *brewfile.Packages, cache brew.InfoCache, brewfilePath, brewInfoPath string, flags Flags) error {
+	if !flagProvided(flags) {
+		return ErrNoPackageType("remove")
+	}
+
+	toRemove := args[0]
+	packageType := getPackageType(flags)
+
+	if error := packages.FromBrewfile(brewfilePath); error != nil {
+		return error
+	}
+
+	if !entryExists(string(packages.Bytes()), packageType, toRemove) {
+		return ErrEntryDoesNotExist(toRemove)
+	}
+
+	if error := cache.Read(brewInfoPath); error != nil {
+		return error
+	}
+
+	cacheMap := brew.CacheMap{Cache: &cache, Map: make(brew.Map)}
+	cacheMap.FromPackages(packages.Brew)
+	cacheMap.ResolveRequiredDependencyMap()
+
+	if flags.Tap {
+		packages.Tap = removePackage(packageType, toRemove, packages.Tap)
+		sort.Strings(packages.Tap)
+	}
+
+	if flags.Brew {
+		updated, error := removeBrewPackage(toRemove, cacheMap)
+		if error != nil {
+			return error
+		}
+		packages.Brew = updated
+	}
+
+	if flags.Cask {
+		packages.Cask = removePackage(packageType, toRemove, packages.Cask)
+		sort.Strings(packages.Cask)
+	}
+
+	if flags.Mas {
+		packages.Mas = removePackage(packageType, toRemove, packages.Mas)
+		sort.Strings(packages.Mas)
+	}
+
+	if flags.DryRun {
+		fmt.Println(string(packages.Bytes()))
+	} else {
+		if error := ioutil.WriteFile(brewfilePath, packages.Bytes(), 0644); error != nil {
+			return error
+		}
+	}
+
+	return nil
 }
 
 func removeBrewPackage(remove string, cacheMap brew.CacheMap) ([]string, error) {

@@ -92,7 +92,7 @@ bfm add -m Xcode -i 497799835
 
 func Add(args []string, packages *brewfile.Packages, cache brew.InfoCache, brewfilePath, brewInfoPath string, flags Flags) error {
 	if !flagProvided(flags) {
-		return ErrNoPackageType
+		return ErrNoPackageType("add")
 	}
 
 	toAdd := args[0]
@@ -103,7 +103,7 @@ func Add(args []string, packages *brewfile.Packages, cache brew.InfoCache, brewf
 	}
 
 	if entryExists(string(packages.Bytes()), packageType, toAdd) {
-		return ErrAlreadyExists(toAdd)
+		return ErrEntryAlreadyExists(toAdd)
 	}
 
 	if error := cache.Read(brewInfoPath); error != nil {

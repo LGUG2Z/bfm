@@ -24,7 +24,7 @@ var _ = Describe("Add", func() {
 			Expect(error).To(HaveOccurred())
 
 			errorMessage := error.Error()
-			Expect(errorMessage).To(Equal(ErrNoPackageType.Error()))
+			Expect(errorMessage).To(Equal(ErrNoPackageType("add").Error()))
 		})
 	})
 
@@ -50,7 +50,7 @@ cask 'firefox'
 			Expect(error).To(HaveOccurred())
 
 			errorMessage := error.Error()
-			Expect(errorMessage).To(Equal(ErrAlreadyExists("a2ps").Error()))
+			Expect(errorMessage).To(Equal(ErrEntryAlreadyExists("a2ps").Error()))
 
 			Expect(removeTestFile(bf)).To(Succeed())
 		})
