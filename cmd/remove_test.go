@@ -1,10 +1,10 @@
 package cmd_test
 
 import (
-	. "github.com/lgug2z/bfm/cmd"
+	//. "github.com/lgug2z/bfm/cmd"
 
 	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	//. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Remove", func() {

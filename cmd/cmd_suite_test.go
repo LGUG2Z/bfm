@@ -4,12 +4,11 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"testing"
-	"os"
 	"bytes"
 	"io"
-	"fmt"
 	"io/ioutil"
+	"os"
+	"testing"
 )
 
 func TestCmd(t *testing.T) {
@@ -32,9 +31,7 @@ func captureStdout(f func()) string {
 	return buf.String()
 }
 
-func createTestInfoFile(contents string) error {
-	file := fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "/src/github.com/lgug2z/bfm/testData/testInfo.json")
-
+func createTestFile(file, contents string) error {
 	error := ioutil.WriteFile(file, []byte(contents), 0644)
 	if error != nil {
 		return error
@@ -43,9 +40,7 @@ func createTestInfoFile(contents string) error {
 	return nil
 }
 
-func removeTestInfoFile() error {
-	file := fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "/src/github.com/lgug2z/bfm/testData/testInfo.json")
-
+func removeTestFile(file string) error {
 	error := os.Remove(file)
 	if error != nil {
 		return error
@@ -53,26 +48,3 @@ func removeTestInfoFile() error {
 
 	return nil
 }
-
-func createTestBrewfile(contents string) error {
-	file := fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "/src/github.com/lgug2z/bfm/testData/testBrewfile")
-
-	error := ioutil.WriteFile(file, []byte(contents), 0644)
-	if error != nil {
-		return error
-	}
-
-	return nil
-}
-
-func removeTestBrewfile() error {
-	file := fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "/src/github.com/lgug2z/bfm/testData/testBrewfile")
-
-	error := os.Remove(file)
-	if error != nil {
-		return error
-	}
-
-	return nil
-}
-

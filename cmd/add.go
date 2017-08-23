@@ -23,8 +23,6 @@ import (
 
 	"io/ioutil"
 
-	"errors"
-
 	"github.com/lgug2z/bfm/brew"
 	"github.com/lgug2z/bfm/brewfile"
 	"github.com/spf13/cobra"
@@ -94,21 +92,23 @@ bfm add -m Xcode -i 497799835
 
 func Add(args []string, packages *brewfile.Packages, cache brew.InfoCache, brewfilePath, brewInfoPath string, flags Flags) error {
 	if !flagProvided(flags) {
-		return errors.New("A package type must be specified. See 'bfm add -help'.")
+		return ErrNoPackageType
 	}
 
 	toAdd := args[0]
 	packageType := getPackageType(flags)
 
-	error := packages.FromBrewfile(brewfilePath)
-	errorExit(error)
-
-	if entryExists(string(packages.Bytes()), packageType, toAdd) {
-		return fmt.Errorf("%s '%s' is already in the Brewfile.", packageType, toAdd)
+	if error := packages.FromBrewfile(brewfilePath); error != nil {
+		return error
 	}
 
-	error = cache.Read(brewInfoPath)
-	errorExit(error)
+	if entryExists(string(packages.Bytes()), packageType, toAdd) {
+		return ErrAlreadyExists(toAdd)
+	}
+
+	if error := cache.Read(brewInfoPath); error != nil {
+		return error
+	}
 
 	cacheMap := brew.CacheMap{Cache: &cache, Map: make(brew.Map)}
 	cacheMap.FromPackages(packages.Brew)
@@ -116,7 +116,7 @@ func Add(args []string, packages *brewfile.Packages, cache brew.InfoCache, brewf
 
 	if flags.Tap {
 		if !hasCorrectTapFormat(toAdd) {
-			return fmt.Errorf("Unrecognised tap format. Use the format 'user/repo'.")
+			return ErrInvalidTapFormat
 		}
 		packages.Tap = addPackage(packageType, toAdd, packages.Tap, flags)
 		sort.Strings(packages.Tap)
@@ -137,7 +137,7 @@ func Add(args []string, packages *brewfile.Packages, cache brew.InfoCache, brewf
 
 	if flags.Mas {
 		if !hasMasID(flags.MasID) {
-			return fmt.Errorf("An id is required for mas apps. Get the id with 'mas search %s' and try again.", toAdd)
+			return ErrNoMasID(toAdd)
 		}
 
 		packages.Mas = addPackage(packageType, toAdd, packages.Mas, flags)
@@ -147,8 +147,10 @@ func Add(args []string, packages *brewfile.Packages, cache brew.InfoCache, brewf
 	if flags.DryRun {
 		fmt.Println(string(packages.Bytes()))
 	} else {
-		error := ioutil.WriteFile(brewfilePath, packages.Bytes(), 0644)
-		errorExit(error)
+		if error := ioutil.WriteFile(brewfilePath, packages.Bytes(), 0644); error != nil {
+			return error
+		}
+
 	}
 
 	return nil
@@ -162,7 +164,7 @@ func addBrewPackage(add, restart string, args []string, cacheMap brew.CacheMap, 
 		case "changed":
 			restart = ":changed"
 		default:
-			return []string{}, errors.New("Valid options for the --restart-service flag are 'true' and 'changed'.")
+			return []string{}, ErrInvalidRestartServiceOption
 		}
 	}
 
