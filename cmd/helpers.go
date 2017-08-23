@@ -23,24 +23,24 @@ func readFileContents(location string) (string, error) {
 	return string(bytes), nil
 }
 
-func flagProvided(t, b, c, m bool) bool {
-	return t || b || c || m
+func flagProvided(flags Flags) bool {
+	return flags.Tap || flags.Brew || flags.Cask || flags.Mas
 }
 
-func getPackageType(tap, brew, cask, mas bool) string {
-	if tap {
+func getPackageType(flags Flags) string {
+	if flags.Tap {
 		return "tap"
 	}
 
-	if brew {
+	if flags.Brew {
 		return "brew"
 	}
 
-	if cask {
+	if flags.Cask {
 		return "cask"
 	}
 
-	if mas {
+	if flags.Mas {
 		return "mas"
 	}
 

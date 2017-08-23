@@ -4,13 +4,14 @@ import (
 	. "github.com/lgug2z/bfm/cmd"
 
 	"fmt"
-	"github.com/lgug2z/bfm/brew"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/lgug2z/bfm/brew"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Refresh", func() {

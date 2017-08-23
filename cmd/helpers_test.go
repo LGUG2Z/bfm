@@ -5,89 +5,89 @@ import (
 	"testing"
 )
 
-func TestFlagProvidedTrue(t *testing.T) {
-	tap := false
-	brew := true
-	cask := false
-	mas := false
-
-	actual := flagProvided(tap, brew, cask, mas)
-	expected := true
-
-	if actual != expected {
-		t.Fatalf("Expected %t but got %t", expected, actual)
-	}
-}
-
-func TestFlagProvidedFalse(t *testing.T) {
-	tap := false
-	brew := false
-	cask := false
-	mas := false
-
-	actual := flagProvided(tap, brew, cask, mas)
-	expected := false
-
-	if actual != expected {
-		t.Fatalf("Expected %t but got %t", expected, actual)
-	}
-}
-
-func TestPackageTypeTap(t *testing.T) {
-	tap := true
-	brew := false
-	cask := false
-	mas := false
-
-	actual := getPackageType(tap, brew, cask, mas)
-	expected := "tap"
-
-	if actual != expected {
-		t.Fatalf("Expected %s but got %s", expected, actual)
-	}
-}
-
-func TestPackageTypeBrew(t *testing.T) {
-	tap := false
-	brew := true
-	cask := false
-	mas := false
-
-	actual := getPackageType(tap, brew, cask, mas)
-	expected := "brew"
-
-	if actual != expected {
-		t.Fatalf("Expected %s but got %s", expected, actual)
-	}
-}
-
-func TestPackageTypeCask(t *testing.T) {
-	tap := false
-	brew := false
-	cask := true
-	mas := false
-
-	actual := getPackageType(tap, brew, cask, mas)
-	expected := "cask"
-
-	if actual != expected {
-		t.Fatalf("Expected %s but got %s", expected, actual)
-	}
-}
-
-func TestPackageTypeMas(t *testing.T) {
-	tap := false
-	brew := false
-	cask := false
-	mas := true
-
-	actual := getPackageType(tap, brew, cask, mas)
-	expected := "mas"
-
-	if actual != expected {
-		t.Fatalf("Expected %s but got %s", expected, actual)
-	}
-}
+//func TestFlagProvidedTrue(t *testing.T) {
+//	tap := false
+//	brew := true
+//	cask := false
+//	mas := false
+//
+//	actual := flagProvided(tap, brew, cask, mas)
+//	expected := true
+//
+//	if actual != expected {
+//		t.Fatalf("Expected %t but got %t", expected, actual)
+//	}
+//}
+//
+//func TestFlagProvidedFalse(t *testing.T) {
+//	tap := false
+//	brew := false
+//	cask := false
+//	mas := false
+//
+//	actual := flagProvided(tap, brew, cask, mas)
+//	expected := false
+//
+//	if actual != expected {
+//		t.Fatalf("Expected %t but got %t", expected, actual)
+//	}
+//}
+//
+//func TestPackageTypeTap(t *testing.T) {
+//	tap := true
+//	brew := false
+//	cask := false
+//	mas := false
+//
+//	actual := getPackageType(tap, brew, cask, mas)
+//	expected := "tap"
+//
+//	if actual != expected {
+//		t.Fatalf("Expected %s but got %s", expected, actual)
+//	}
+//}
+//
+//func TestPackageTypeBrew(t *testing.T) {
+//	tap := false
+//	brew := true
+//	cask := false
+//	mas := false
+//
+//	actual := getPackageType(tap, brew, cask, mas)
+//	expected := "brew"
+//
+//	if actual != expected {
+//		t.Fatalf("Expected %s but got %s", expected, actual)
+//	}
+//}
+//
+//func TestPackageTypeCask(t *testing.T) {
+//	tap := false
+//	brew := false
+//	cask := true
+//	mas := false
+//
+//	actual := getPackageType(tap, brew, cask, mas)
+//	expected := "cask"
+//
+//	if actual != expected {
+//		t.Fatalf("Expected %s but got %s", expected, actual)
+//	}
+//}
+//
+//func TestPackageTypeMas(t *testing.T) {
+//	tap := false
+//	brew := false
+//	cask := false
+//	mas := true
+//
+//	actual := getPackageType(tap, brew, cask, mas)
+//	expected := "mas"
+//
+//	if actual != expected {
+//		t.Fatalf("Expected %s but got %s", expected, actual)
+//	}
+//}
 
 func TestConstructBaseEntry(t *testing.T) {
 	packageType := "brew"

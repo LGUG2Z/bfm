@@ -17,43 +17,37 @@ package cmd
 import (
 	"fmt"
 
-	"os"
 	"sort"
-	"strings"
 
 	"regexp"
 
 	"io/ioutil"
 
+	"errors"
+
 	"github.com/lgug2z/bfm/brew"
 	"github.com/lgug2z/bfm/brewfile"
 	"github.com/spf13/cobra"
-	"errors"
 )
 
-var addFlags struct {
-	brew, tap, cask, mas, dryRun  bool
-	args                          []string
-	restartService, masID         string
-	addPackageAndRequired, addAll bool // user picks which dependencies to also add to the brewfile
-}
+var addFlags Flags
 
 func init() {
 	RootCmd.AddCommand(addCmd)
 
-	addCmd.Flags().BoolVarP(&addFlags.dryRun, "dry-run", "d", false, "conduct a dry run without modifying the Brewfile")
+	addCmd.Flags().BoolVarP(&addFlags.DryRun, "dry-run", "d", false, "conduct a dry run without modifying the Brewfile")
 
-	addCmd.Flags().BoolVarP(&addFlags.tap, "tap", "t", false, "add a tap")
-	addCmd.Flags().BoolVarP(&addFlags.brew, "brew", "b", false, "add a brew package")
-	addCmd.Flags().BoolVarP(&addFlags.cask, "cask", "c", false, "add a cask")
-	addCmd.Flags().BoolVarP(&addFlags.mas, "mas", "m", false, "add a mas app")
+	addCmd.Flags().BoolVarP(&addFlags.Tap, "tap", "t", false, "add a tap")
+	addCmd.Flags().BoolVarP(&addFlags.Brew, "brew", "b", false, "add a brew package")
+	addCmd.Flags().BoolVarP(&addFlags.Cask, "cask", "c", false, "add a cask")
+	addCmd.Flags().BoolVarP(&addFlags.Mas, "mas", "m", false, "add a mas app")
 
-	addCmd.Flags().StringSliceVar(&addFlags.args, "args", []string{}, "supply args to be used during installations and updates")
-	addCmd.Flags().StringVar(&addFlags.restartService, "restart-service", "", "always (every time bundle runs), changed (after changes and updates)")
-	addCmd.Flags().StringVarP(&addFlags.masID, "mas-id", "i", "", "id required for mas packages")
+	addCmd.Flags().StringSliceVar(&addFlags.Args, "args", []string{}, "supply args to be used during installations and updates")
+	addCmd.Flags().StringVar(&addFlags.RestartService, "restart-service", "", "always (every time bundle runs), changed (after changes and updates)")
+	addCmd.Flags().StringVarP(&addFlags.MasID, "mas-id", "i", "", "id required for mas packages")
 
-	addCmd.Flags().BoolVarP(&addFlags.addPackageAndRequired, "required", "r", false, "add package and all required dependencies")
-	addCmd.Flags().BoolVarP(&addFlags.addAll, "all", "a", false, "add package and all required, recommended, optional and build dependencies")
+	addCmd.Flags().BoolVarP(&addFlags.AddPackageAndRequired, "required", "r", false, "add package and all required dependencies")
+	addCmd.Flags().BoolVarP(&addFlags.AddAll, "all", "a", false, "add package and all required, recommended, optional and build dependencies")
 }
 
 // addCmd represents the add command
@@ -91,71 +85,76 @@ bfm add -m Xcode -i 497799835
 `,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if !flagProvided(addFlags.tap, addFlags.brew, addFlags.cask, addFlags.mas) {
-			fmt.Println("A package type must be specified. See 'bfm add --help'.")
-			os.Exit(1)
-		}
-
-		toAdd := args[0]
-		packageType := getPackageType(addFlags.tap, addFlags.brew, addFlags.cask, addFlags.mas)
-
-		var packages brewfile.Packages
-		error := packages.FromBrewfile(brewfilePath)
-		errorExit(error)
-
-		if entryExists(string(packages.Bytes()), packageType, toAdd) {
-			fmt.Printf("%s '%s' is already in the Brewfile.\n", packageType, toAdd)
-			os.Exit(1)
-		}
-
 		var cache brew.InfoCache
-		error = cache.Read(brewInfoPath)
+		var packages brewfile.Packages
+		error := Add(args, &packages, cache, brewfilePath, brewInfoPath, addFlags)
 		errorExit(error)
-
-		cacheMap := brew.CacheMap{Cache: &cache, Map: make(brew.Map)}
-		cacheMap.FromPackages(packages.Brew)
-		cacheMap.ResolveRequiredDependencyMap()
-
-		if addFlags.tap {
-			if !hasCorrectTapFormat(packageType) {
-				fmt.Printf("Unrecognised tap format. Use the format 'user/repo'.\n")
-				os.Exit(1)
-			}
-			packages.Tap = addPackage(packageType, toAdd, packages.Tap)
-			sort.Strings(packages.Tap)
-		}
-
-		if addFlags.brew {
-			updated, error := addBrewPackage(toAdd, addFlags.restartService, addFlags.args, cacheMap)
-			errorExit(error)
-			packages.Brew = updated
-		}
-
-		if addFlags.cask {
-			packages.Cask = addPackage(packageType, toAdd, packages.Cask)
-			sort.Strings(packages.Cask)
-		}
-
-		if addFlags.mas {
-			if !hasMasID(addFlags.masID) {
-				fmt.Printf("An id is required for mas apps. Get the id with 'mas search %s and try again.\n", strings.ToLower(toAdd))
-				os.Exit(1)
-			}
-
-			packages.Mas = addPackage(packageType, toAdd, packages.Mas)
-			sort.Strings(packages.Mas)
-		}
-
-		if addFlags.dryRun {
-			fmt.Println(string(packages.Bytes()))
-		} else {
-			error := ioutil.WriteFile(brewfilePath, packages.Bytes(), 0644)
-			errorExit(error)
-		}
 	},
 }
 
-func addBrewPackage(add, restart string, args []string, cacheMap brew.CacheMap) ([]string, error) {
+func Add(args []string, packages *brewfile.Packages, cache brew.InfoCache, brewfilePath, brewInfoPath string, flags Flags) error {
+	if !flagProvided(flags) {
+		return errors.New("A package type must be specified. See 'bfm add -help'.")
+	}
+
+	toAdd := args[0]
+	packageType := getPackageType(flags)
+
+	error := packages.FromBrewfile(brewfilePath)
+	errorExit(error)
+
+	if entryExists(string(packages.Bytes()), packageType, toAdd) {
+		return fmt.Errorf("%s '%s' is already in the Brewfile.", packageType, toAdd)
+	}
+
+	error = cache.Read(brewInfoPath)
+	errorExit(error)
+
+	cacheMap := brew.CacheMap{Cache: &cache, Map: make(brew.Map)}
+	cacheMap.FromPackages(packages.Brew)
+	cacheMap.ResolveRequiredDependencyMap()
+
+	if flags.Tap {
+		if !hasCorrectTapFormat(toAdd) {
+			return fmt.Errorf("Unrecognised tap format. Use the format 'user/repo'.")
+		}
+		packages.Tap = addPackage(packageType, toAdd, packages.Tap, flags)
+		sort.Strings(packages.Tap)
+	}
+
+	if flags.Brew {
+		updated, error := addBrewPackage(toAdd, flags.RestartService, flags.Args, cacheMap, flags)
+		if error != nil {
+			return error
+		}
+		packages.Brew = updated
+	}
+
+	if flags.Cask {
+		packages.Cask = addPackage(packageType, toAdd, packages.Cask, flags)
+		sort.Strings(packages.Cask)
+	}
+
+	if flags.Mas {
+		if !hasMasID(flags.MasID) {
+			return fmt.Errorf("An id is required for mas apps. Get the id with 'mas search %s' and try again.", toAdd)
+		}
+
+		packages.Mas = addPackage(packageType, toAdd, packages.Mas, flags)
+		sort.Strings(packages.Mas)
+	}
+
+	if flags.DryRun {
+		fmt.Println(string(packages.Bytes()))
+	} else {
+		error := ioutil.WriteFile(brewfilePath, packages.Bytes(), 0644)
+		errorExit(error)
+	}
+
+	return nil
+}
+
+func addBrewPackage(add, restart string, args []string, cacheMap brew.CacheMap, flags Flags) ([]string, error) {
 	if len(restart) > 1 {
 		switch restart {
 		case "always":
@@ -167,11 +166,11 @@ func addBrewPackage(add, restart string, args []string, cacheMap brew.CacheMap) 
 		}
 	}
 
-	if addFlags.addAll {
+	if flags.AddAll {
 		if err := cacheMap.Add(brew.Entry{Name: add, RestartService: restart, Args: args}, brew.AddAll); err != nil {
 			return []string{}, err
 		}
-	} else if addFlags.addPackageAndRequired {
+	} else if flags.AddPackageAndRequired {
 		if err := cacheMap.Add(brew.Entry{Name: add, RestartService: restart, Args: args}, brew.AddPackageAndRequired); err != nil {
 			return []string{}, err
 		}
@@ -196,11 +195,11 @@ func addBrewPackage(add, restart string, args []string, cacheMap brew.CacheMap) 
 	return lines, nil
 }
 
-func addPackage(packageType, newPackage string, packages []string) []string {
+func addPackage(packageType, newPackage string, packages []string, flags Flags) []string {
 	packageEntry := constructBaseEntry(packageType, newPackage)
 
 	if packageType == "mas" {
-		packageEntry = appendMasID(packageEntry, addFlags.masID)
+		packageEntry = appendMasID(packageEntry, flags.MasID)
 	}
 
 	fmt.Printf("Added %s %s to Brewfile.\n", packageType, newPackage)

@@ -28,21 +28,19 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var removeFlags struct {
-	brew, tap, cask, mas, dryRun, removeAll, removePackageAndRequired bool
-}
+var removeFlags Flags
 
 func init() {
 	RootCmd.AddCommand(removeCmd)
 
-	removeCmd.Flags().BoolVarP(&removeFlags.dryRun, "dry-run", "d", false, "conduct a dry run without modifying the Brewfile")
+	removeCmd.Flags().BoolVarP(&removeFlags.DryRun, "dry-run", "d", false, "conduct a dry run without modifying the Brewfile")
 
-	removeCmd.Flags().BoolVarP(&removeFlags.tap, "tap", "t", false, "remove a tap")
-	removeCmd.Flags().BoolVarP(&removeFlags.brew, "brew", "b", false, "remove a brew package")
-	removeCmd.Flags().BoolVarP(&removeFlags.cask, "cask", "c", false, "remove a cask")
-	removeCmd.Flags().BoolVarP(&removeFlags.mas, "mas", "m", false, "remove a mas app")
-	removeCmd.Flags().BoolVar(&removeFlags.removeAll, "all-unused", false, "remove brew package and its unused required, recommended, optional and build dependencies")
-	removeCmd.Flags().BoolVar(&removeFlags.removePackageAndRequired, "required-unused", false, "remove brew package and its unused required dependencies")
+	removeCmd.Flags().BoolVarP(&removeFlags.Tap, "tap", "t", false, "remove a tap")
+	removeCmd.Flags().BoolVarP(&removeFlags.Brew, "brew", "b", false, "remove a brew package")
+	removeCmd.Flags().BoolVarP(&removeFlags.Cask, "cask", "c", false, "remove a cask")
+	removeCmd.Flags().BoolVarP(&removeFlags.Mas, "mas", "m", false, "remove a mas app")
+	removeCmd.Flags().BoolVar(&removeFlags.RemoveAll, "all-unused", false, "remove brew package and its unused required, recommended, optional and build dependencies")
+	removeCmd.Flags().BoolVar(&removeFlags.RemovePackageAndRequired, "required-unused", false, "remove brew package and its unused required dependencies")
 }
 
 // removeCmd represents the remove command
@@ -68,13 +66,13 @@ bfm remove -m Xcode
 `,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if !flagProvided(removeFlags.tap, removeFlags.brew, removeFlags.cask, removeFlags.mas) {
+		if !flagProvided(removeFlags) {
 			fmt.Println("A package type must be specified. See 'bfm remove --help'.")
 			os.Exit(1)
 		}
 
 		toRemove := args[0]
-		packageType := getPackageType(removeFlags.tap, removeFlags.brew, removeFlags.cask, removeFlags.mas)
+		packageType := getPackageType(removeFlags)
 
 		var packages brewfile.Packages
 		error := packages.FromBrewfile(brewfilePath)
@@ -93,28 +91,28 @@ bfm remove -m Xcode
 		cacheMap.FromPackages(packages.Brew)
 		cacheMap.ResolveRequiredDependencyMap()
 
-		if removeFlags.tap {
+		if removeFlags.Tap {
 			packages.Tap = removePackage(packageType, toRemove, packages.Tap)
 			sort.Strings(packages.Tap)
 		}
 
-		if removeFlags.brew {
+		if removeFlags.Brew {
 			updated, error := removeBrewPackage(toRemove, cacheMap)
 			errorExit(error)
 			packages.Brew = updated
 		}
 
-		if removeFlags.cask {
+		if removeFlags.Cask {
 			packages.Cask = removePackage(packageType, toRemove, packages.Cask)
 			sort.Strings(packages.Cask)
 		}
 
-		if removeFlags.mas {
+		if removeFlags.Mas {
 			packages.Mas = removePackage(packageType, toRemove, packages.Mas)
 			sort.Strings(packages.Mas)
 		}
 
-		if removeFlags.dryRun {
+		if removeFlags.DryRun {
 			fmt.Println(string(packages.Bytes()))
 		} else {
 			error := ioutil.WriteFile(brewfilePath, packages.Bytes(), 0644)
@@ -124,12 +122,12 @@ bfm remove -m Xcode
 }
 
 func removeBrewPackage(remove string, cacheMap brew.CacheMap) ([]string, error) {
-	if removeFlags.removeAll {
+	if removeFlags.RemoveAll {
 		if err := cacheMap.Remove(remove, brew.RemoveAll); err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-	} else if removeFlags.removePackageAndRequired {
+	} else if removeFlags.RemovePackageAndRequired {
 		if err := cacheMap.Remove(remove, brew.RemovePackageAndRequired); err != nil {
 			fmt.Println(err)
 			os.Exit(1)
