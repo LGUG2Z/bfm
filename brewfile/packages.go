@@ -34,23 +34,34 @@ func (p *Packages) FromBrewfile(brewfilePath string) error {
 func (p *Packages) Bytes() []byte {
 	lines := []string{}
 
+	var tapLen, brewLen, caskLen int
+
 	for _, line := range p.Tap {
 		lines = append(lines, line)
+		tapLen++
 	}
 
-	lines = append(lines, "")
+	if tapLen > 0 {
+		lines = append(lines, "")
+	}
 
 	for _, line := range p.Brew {
 		lines = append(lines, line)
+		brewLen++
 	}
 
-	lines = append(lines, "")
+	if brewLen > 0 {
+		lines = append(lines, "")
+	}
 
 	for _, line := range p.Cask {
 		lines = append(lines, line)
+		caskLen++
 	}
 
-	lines = append(lines, "")
+	if caskLen > 0 {
+		lines = append(lines, "")
+	}
 
 	for _, line := range p.Mas {
 		lines = append(lines, line)
