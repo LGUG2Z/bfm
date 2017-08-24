@@ -17,13 +17,13 @@ var _ = Describe("Add", func() {
 	var (
 		bf       = fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "src/github.com/lgug2z/bfm/testData/testBrewfile")
 		dbFile   = fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "src/github.com/lgug2z/bfm/testData/testDB.bolt")
-		cache    brew.InfoCache
+		cache    brew.Cache
 		packages brewfile.Packages
 	)
 
 	Describe("When the command is called without any flags", func() {
 		It("Should return an error with info about required flags for specifying package types", func() {
-			err := Add([]string{"something"}, &brewfile.Packages{}, brew.InfoCache{}, "", Flags{}, TestDB{}.DB)
+			err := Add([]string{"something"}, &brewfile.Packages{}, cache, "", Flags{})
 			Expect(err).To(HaveOccurred())
 
 			errorMessage := err.Error()
@@ -46,7 +46,7 @@ cask 'firefox'
 			Expect(t.Create()).To(Succeed())
 			defer t.Remove()
 
-			err := Add([]string{"a2ps"}, &packages, cache, bf, Flags{Brew: true}, TestDB{}.DB)
+			err := Add([]string{"a2ps"}, &packages, cache, bf, Flags{Brew: true})
 			Expect(err).To(HaveOccurred())
 
 			errorMessage := err.Error()
@@ -57,6 +57,7 @@ cask 'firefox'
 			testDB, err := NewTestDB(dbFile)
 			Expect(err).ToNot(HaveOccurred())
 			defer testDB.Close()
+			cache.DB = testDB.DB
 
 			testDB.AddTestBrewsByName("a2ps")
 
@@ -65,7 +66,7 @@ cask 'firefox'
 			defer t.Remove()
 
 			_ = captureStdout(func() {
-				err := Add([]string{"a2ps"}, &packages, cache, bf, Flags{Brew: true, DryRun: true}, testDB.DB)
+				err := Add([]string{"a2ps"}, &packages, cache, bf, Flags{Brew: true, DryRun: true})
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -82,7 +83,7 @@ cask 'firefox'
 			Expect(t.Create()).To(Succeed())
 			defer t.Remove()
 
-			error := Add([]string{"bad:format"}, &brewfile.Packages{}, brew.InfoCache{}, bf, Flags{Tap: true}, TestDB{}.DB)
+			error := Add([]string{"bad:format"}, &brewfile.Packages{}, cache, bf, Flags{Tap: true})
 			Expect(error).To(HaveOccurred())
 
 			errorMessage := error.Error()
@@ -95,7 +96,7 @@ cask 'firefox'
 			defer t.Remove()
 
 			_ = captureStdout(func() {
-				error := Add([]string{"good/format"}, &brewfile.Packages{}, brew.InfoCache{}, bf, Flags{Tap: true}, TestDB{}.DB)
+				error := Add([]string{"good/format"}, &brewfile.Packages{}, cache, bf, Flags{Tap: true})
 				Expect(error).ToNot(HaveOccurred())
 			})
 
@@ -112,7 +113,7 @@ cask 'firefox'
 			Expect(t.Create()).To(Succeed())
 			defer t.Remove()
 
-			error := Add([]string{"Xcode"}, &brewfile.Packages{}, brew.InfoCache{}, bf, Flags{Mas: true}, TestDB{}.DB)
+			error := Add([]string{"Xcode"}, &brewfile.Packages{}, cache, bf, Flags{Mas: true})
 			Expect(error).To(HaveOccurred())
 
 			errorMessage := error.Error()
@@ -126,7 +127,7 @@ cask 'firefox'
 			defer t.Remove()
 
 			_ = captureStdout(func() {
-				error := Add([]string{"Xcode"}, &brewfile.Packages{}, brew.InfoCache{}, bf, Flags{Mas: true, MasID: "123456"}, TestDB{}.DB)
+				error := Add([]string{"Xcode"}, &brewfile.Packages{}, cache, bf, Flags{Mas: true, MasID: "123456"})
 				Expect(error).ToNot(HaveOccurred())
 			})
 
@@ -144,7 +145,7 @@ cask 'firefox'
 			defer t.Remove()
 
 			_ = captureStdout(func() {
-				error := Add([]string{"firefox"}, &brewfile.Packages{}, brew.InfoCache{}, bf, Flags{Cask: true}, TestDB{}.DB)
+				error := Add([]string{"firefox"}, &brewfile.Packages{}, cache, bf, Flags{Cask: true})
 				Expect(error).ToNot(HaveOccurred())
 			})
 
@@ -162,7 +163,7 @@ cask 'firefox'
 			defer t.Remove()
 
 			_ = captureStdout(func() {
-				error := Add([]string{"a2ps"}, &brewfile.Packages{}, brew.InfoCache{}, bf, Flags{Brew: true, RestartService: "wrong"}, TestDB{}.DB)
+				error := Add([]string{"a2ps"}, &brewfile.Packages{}, cache, bf, Flags{Brew: true, RestartService: "wrong"})
 				Expect(error).To(HaveOccurred())
 				Expect(error.Error()).To(Equal(ErrInvalidRestartServiceOption.Error()))
 			})
@@ -173,6 +174,7 @@ cask 'firefox'
 			testDB, err := NewTestDB(dbFile)
 			Expect(err).ToNot(HaveOccurred())
 			defer testDB.Close()
+			cache.DB = testDB.DB
 
 			testDB.AddTestBrewsByName("a2ps")
 
@@ -182,7 +184,7 @@ cask 'firefox'
 
 			packages := &brewfile.Packages{}
 
-			error := Add([]string{"a2ps"}, packages, brew.InfoCache{}, bf, Flags{Brew: true, RestartService: "always"}, testDB.DB)
+			error := Add([]string{"a2ps"}, packages, cache, bf, Flags{Brew: true, RestartService: "always"})
 			Expect(error).ToNot(HaveOccurred())
 
 			Expect(packages.Brew).ToNot(BeEmpty())
@@ -194,6 +196,7 @@ cask 'firefox'
 			testDB, err := NewTestDB(dbFile)
 			Expect(err).ToNot(HaveOccurred())
 			defer testDB.Close()
+			cache.DB = testDB.DB
 
 			testDB.AddTestBrewsByName("a2ps")
 
@@ -203,7 +206,7 @@ cask 'firefox'
 
 			packages := &brewfile.Packages{}
 
-			error := Add([]string{"a2ps"}, packages, brew.InfoCache{}, bf, Flags{Brew: true, RestartService: "changed"}, testDB.DB)
+			error := Add([]string{"a2ps"}, packages, cache, bf, Flags{Brew: true, RestartService: "changed"})
 			Expect(error).ToNot(HaveOccurred())
 
 			Expect(packages.Brew).ToNot(BeEmpty())
@@ -217,6 +220,7 @@ cask 'firefox'
 			testDB, err := NewTestDB(dbFile)
 			Expect(err).ToNot(HaveOccurred())
 			defer testDB.Close()
+			cache.DB = testDB.DB
 
 			testDB.AddTestBrewsByName("a2ps")
 
@@ -226,7 +230,7 @@ cask 'firefox'
 
 			packages := &brewfile.Packages{}
 
-			error := Add([]string{"a2ps"}, packages, brew.InfoCache{}, bf, Flags{Brew: true, Args: []string{"one", "two"}}, testDB.DB)
+			error := Add([]string{"a2ps"}, packages, cache, bf, Flags{Brew: true, Args: []string{"one", "two"}})
 			Expect(error).ToNot(HaveOccurred())
 
 			Expect(packages.Brew).ToNot(BeEmpty())
@@ -240,6 +244,7 @@ cask 'firefox'
 			testDB, err := NewTestDB(dbFile)
 			Expect(err).ToNot(HaveOccurred())
 			defer testDB.Close()
+			cache.DB = testDB.DB
 
 			testDB.AddTestBrewsByName("bash")
 			testDB.AddTestBrewsFromInfo(brew.Info{FullName: "a2ps", Dependencies: []string{"bash"}})
@@ -249,7 +254,7 @@ cask 'firefox'
 			defer t.Remove()
 
 			packages := &brewfile.Packages{}
-			error := Add([]string{"a2ps"}, packages, brew.InfoCache{}, bf, Flags{Brew: true}, testDB.DB)
+			error := Add([]string{"a2ps"}, packages, cache, bf, Flags{Brew: true})
 			Expect(error).ToNot(HaveOccurred())
 
 			Expect(packages.Brew).To(HaveLen(1))
@@ -263,6 +268,7 @@ cask 'firefox'
 			testDB, err := NewTestDB(dbFile)
 			Expect(err).ToNot(HaveOccurred())
 			defer testDB.Close()
+			cache.DB = testDB.DB
 
 			testDB.AddTestBrewsByName("bash")
 			testDB.AddTestBrewsFromInfo(brew.Info{FullName: "a2ps", Dependencies: []string{"bash"}})
@@ -273,7 +279,7 @@ cask 'firefox'
 
 			packages := &brewfile.Packages{}
 
-			error := Add([]string{"a2ps"}, packages, brew.InfoCache{}, bf, Flags{Brew: true, AddPackageAndRequired: true}, testDB.DB)
+			error := Add([]string{"a2ps"}, packages, cache, bf, Flags{Brew: true, AddPackageAndRequired: true})
 			Expect(error).ToNot(HaveOccurred())
 
 			Expect(packages.Brew).To(HaveLen(2))
@@ -288,6 +294,7 @@ cask 'firefox'
 			testDB, err := NewTestDB(dbFile)
 			Expect(err).ToNot(HaveOccurred())
 			defer testDB.Close()
+			cache.DB = testDB.DB
 
 			testDB.AddTestBrewsByName("bash", "zsh", "fish", "sh")
 			testDB.AddTestBrewsFromInfo(brew.Info{
@@ -304,7 +311,7 @@ cask 'firefox'
 
 			packages := &brewfile.Packages{}
 
-			error := Add([]string{"a2ps"}, packages, brew.InfoCache{}, bf, Flags{Brew: true, AddAll: true}, testDB.DB)
+			error := Add([]string{"a2ps"}, packages, cache, bf, Flags{Brew: true, AddAll: true})
 			Expect(error).ToNot(HaveOccurred())
 
 			Expect(packages.Brew).To(HaveLen(5))

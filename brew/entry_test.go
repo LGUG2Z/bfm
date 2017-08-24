@@ -23,7 +23,7 @@ var _ = Describe("Entry", func() {
 		}
 	})
 
-	Describe("With a valid Info object returned from the InfoCache", func() {
+	Describe("With a valid Info object returned from the Cache", func() {
 		It("Populates all the fields of an Entry", func() {
 			expected := Entry{
 				Name:                    "a",

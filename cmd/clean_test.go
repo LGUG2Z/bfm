@@ -17,7 +17,7 @@ var _ = Describe("Clean", func() {
 	var (
 		bf       = fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "src/github.com/lgug2z/bfm/testData/testBrewfile")
 		dbFile   = fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "src/github.com/lgug2z/bfm/testData/testDB.bolt")
-		cache    brew.InfoCache
+		cache    brew.Cache
 		packages brewfile.Packages
 		contents = `
 tap 'homebrew/bundle'
@@ -35,6 +35,7 @@ cask 'firefox'
 			testDB, err := NewTestDB(dbFile)
 			Expect(err).ToNot(HaveOccurred())
 			defer testDB.Close()
+			cache.DB = testDB.DB
 
 			testDB.AddTestBrewsByName("a2ps")
 
@@ -49,7 +50,7 @@ cask 'firefox'
 				Mas:  []string{"mas 'Xcode', id: 497799835"},
 			}
 
-			Clean([]string{}, &packages, cache, bf, Flags{DryRun: false}, testDB.DB)
+			Clean([]string{}, &packages, cache, bf, Flags{DryRun: false})
 
 			Expect(packages).To(Equal(expectedPackages))
 		})
@@ -58,12 +59,13 @@ cask 'firefox'
 			testDB, err := NewTestDB(dbFile)
 			Expect(err).ToNot(HaveOccurred())
 			defer testDB.Close()
+			cache.DB = testDB.DB
 
 			t := TestFile{Path: bf, Contents: contents}
 			Expect(t.Create()).To(Succeed())
 			defer t.Remove()
 
-			err = Clean([]string{}, &packages, cache, bf, Flags{DryRun: false}, testDB.DB)
+			err = Clean([]string{}, &packages, cache, bf, Flags{DryRun: false})
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal(brew.ErrCouldNotFindPackageInfo("a2ps").Error()))
 		})
@@ -82,6 +84,7 @@ mas 'Xcode', id: 497799835`
 			testDB, err := NewTestDB(dbFile)
 			Expect(err).ToNot(HaveOccurred())
 			defer testDB.Close()
+			cache.DB = testDB.DB
 
 			testDB.AddTestBrewsByName("a2ps")
 
@@ -89,7 +92,7 @@ mas 'Xcode', id: 497799835`
 			Expect(t.Create()).To(Succeed())
 			defer t.Remove()
 
-			Clean([]string{}, &packages, cache, bf, Flags{DryRun: false}, testDB.DB)
+			Clean([]string{}, &packages, cache, bf, Flags{DryRun: false})
 
 			bytes, error := ioutil.ReadFile(bf)
 			Expect(error).To(BeNil())
@@ -101,6 +104,7 @@ mas 'Xcode', id: 497799835`
 			testDB, err := NewTestDB(dbFile)
 			Expect(err).ToNot(HaveOccurred())
 			defer testDB.Close()
+			cache.DB = testDB.DB
 
 			testDB.AddTestBrewsByName("a2ps")
 
@@ -109,7 +113,7 @@ mas 'Xcode', id: 497799835`
 			defer t.Remove()
 
 			_ = captureStdout(func() {
-				Clean([]string{}, &packages, cache, bf, Flags{DryRun: true}, testDB.DB)
+				Clean([]string{}, &packages, cache, bf, Flags{DryRun: true})
 			})
 
 			bytes, error := ioutil.ReadFile(bf)
@@ -122,6 +126,7 @@ mas 'Xcode', id: 497799835`
 			testDB, err := NewTestDB(dbFile)
 			Expect(err).ToNot(HaveOccurred())
 			defer testDB.Close()
+			cache.DB = testDB.DB
 
 			testDB.AddTestBrewsByName("a2ps")
 
@@ -141,7 +146,7 @@ mas 'Xcode', id: 497799835
 `
 
 			output := captureStdout(func() {
-				Clean([]string{}, &packages, cache, bf, Flags{DryRun: true}, testDB.DB)
+				Clean([]string{}, &packages, cache, bf, Flags{DryRun: true})
 			})
 
 			Expect(output).To(Equal(expectedOutput))

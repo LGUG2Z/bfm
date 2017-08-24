@@ -23,10 +23,10 @@ import (
 
 	"io/ioutil"
 
+	"github.com/boltdb/bolt"
 	"github.com/lgug2z/bfm/brew"
 	"github.com/lgug2z/bfm/brewfile"
 	"github.com/spf13/cobra"
-	"github.com/boltdb/bolt"
 )
 
 var removeFlags Flags
@@ -68,19 +68,20 @@ bfm remove -m Xcode
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		var packages brewfile.Packages
-		var cache brew.InfoCache
 
 		db, err := bolt.Open(boltPath, 0600, nil)
 		if err != nil {
 			errorExit(err)
 		}
 
-		error := Remove(args, &packages, cache, brewfilePath, removeFlags, db)
+		cache := brew.Cache{DB: db}
+
+		error := Remove(args, &packages, cache, brewfilePath, removeFlags)
 		errorExit(error)
 	},
 }
 
-func Remove(args []string, packages *brewfile.Packages, cache brew.InfoCache, brewfilePath string, flags Flags, db *bolt.DB) error {
+func Remove(args []string, packages *brewfile.Packages, cache brew.Cache, brewfilePath string, flags Flags) error {
 	if !flagProvided(flags) {
 		return ErrNoPackageType("remove")
 	}
@@ -96,13 +97,9 @@ func Remove(args []string, packages *brewfile.Packages, cache brew.InfoCache, br
 		return ErrEntryDoesNotExist(toRemove)
 	}
 
-	//if error := cache.Read(brewInfoPath); error != nil {
-	//	return error
-	//}
-
 	cacheMap := brew.CacheMap{Cache: &cache, Map: make(brew.Map)}
-	cacheMap.FromPackages(packages.Brew, db)
-	cacheMap.ResolveRequiredDependencyMap(db)
+	cacheMap.FromPackages(packages.Brew)
+	cacheMap.ResolveRequiredDependencyMap()
 
 	if flags.Tap {
 		packages.Tap = removePackage(packageType, toRemove, packages.Tap)

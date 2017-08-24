@@ -24,8 +24,9 @@ var _ = Describe("Refresh", func() {
 			testDB, err := NewTestDB(dbFile)
 			Expect(err).ToNot(HaveOccurred())
 			defer testDB.Close()
+			cache := brew.Cache{DB: testDB.DB}
 
-			Refresh([]string{}, brew.InfoCache{}, command, testDB.DB)
+			Refresh([]string{}, cache, command)
 
 			var v []byte
 			err = testDB.View(func(tx *bolt.Tx) error {

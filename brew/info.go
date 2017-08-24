@@ -1,13 +1,5 @@
 package brew
 
-import (
-	"encoding/json"
-	"fmt"
-	"os/exec"
-
-	"github.com/boltdb/bolt"
-)
-
 type Info struct {
 	Name     string   `json:"name"`
 	FullName string   `json:"full_name"`
@@ -81,83 +73,4 @@ type Info struct {
 			} `json:"files"`
 		} `json:"stable"`
 	} `json:"bottle"`
-}
-
-type InfoCache []Info
-
-func (i *InfoCache) Refresh(db *bolt.DB, command *exec.Cmd) error {
-	b, err := command.Output()
-	if err != nil {
-		return err
-	}
-
-	if err != nil {
-		return err
-	}
-
-	err = db.Update(func(tx *bolt.Tx) error {
-		_, err := tx.CreateBucketIfNotExists([]byte("brew"))
-		if err != nil {
-			return fmt.Errorf("create bucket: %s", err)
-		}
-		return nil
-	})
-
-	if err != nil {
-		return err
-	}
-
-	if err := json.Unmarshal(b, &i); err != nil {
-		return err
-	}
-
-	for _, pkg := range []Info(*i) {
-		err := db.Update(func(tx *bolt.Tx) error {
-			b := tx.Bucket([]byte("brew"))
-
-			key := pkg.FullName
-			value, err := json.Marshal(pkg)
-			if err != nil {
-				return err
-			}
-
-			if err := b.Put([]byte(key), []byte(value)); err != nil {
-				return err
-			}
-
-			return nil
-		})
-
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (i InfoCache) Find(pkg string, db *bolt.DB) (Info, error) {
-	var info Info
-
-	err := db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("brew"))
-		v := b.Get([]byte(pkg))
-
-		if v == nil {
-			return ErrCouldNotFindPackageInfo(pkg)
-		}
-
-		err := json.Unmarshal(v, &info)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		return Info{}, err
-	}
-
-	return info, nil
 }

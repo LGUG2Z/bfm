@@ -57,7 +57,6 @@ flag if using bfm for the first time.
 `,
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		var cache brew.InfoCache
 		var packages brewfile.Packages
 
 		db, err := bolt.Open(boltPath, 0600, nil)
@@ -65,22 +64,24 @@ flag if using bfm for the first time.
 			errorExit(err)
 		}
 
-		err = Clean(args, &packages, cache, brewfilePath, cleanFlags, db)
+		cache := brew.Cache{DB: db}
+
+		err = Clean(args, &packages, cache, brewfilePath, cleanFlags)
 		errorExit(err)
 	},
 }
 
-func Clean(args []string, packages *brewfile.Packages, cache brew.InfoCache, brewfilePath string, flags Flags, db *bolt.DB) error {
+func Clean(args []string, packages *brewfile.Packages, cache brew.Cache, brewfilePath string, flags Flags) error {
 	if err := packages.FromBrewfile(brewfilePath); err != nil {
 		return err
 	}
 
 	cacheMap := brew.CacheMap{Cache: &cache, Map: make(brew.Map)}
-	if err := cacheMap.FromPackages(packages.Brew, db); err != nil {
+	if err := cacheMap.FromPackages(packages.Brew); err != nil {
 		return err
 	}
 
-	if err := cacheMap.ResolveRequiredDependencyMap(db); err != nil {
+	if err := cacheMap.ResolveRequiredDependencyMap(); err != nil {
 		return err
 	}
 

@@ -11,10 +11,10 @@ import (
 	"os/exec"
 )
 
-var _ = Describe("InfoCache", func() {
+var _ = Describe("Cache", func() {
 	var (
-		cache  InfoCache
-		dbFile = fmt.Sprintf("%s/src/github.com/lgug2z/bfm/testData/testDB.bolt", os.Getenv("GOPATH"))
+		cache  Cache
+		dbFile  = fmt.Sprintf("%s/src/github.com/lgug2z/bfm/testData/testDB.bolt", os.Getenv("GOPATH"))
 	)
 
 	Describe("With no existing database file", func() {
@@ -22,10 +22,11 @@ var _ = Describe("InfoCache", func() {
 			testDB, err := NewTestDB(dbFile)
 			Expect(err).ToNot(HaveOccurred())
 			defer testDB.Close()
+			cache.DB = testDB.DB
 
 			command := exec.Command("echo", `[ { "full_name": "vim" } ]`)
 
-			err = cache.Refresh(testDB.DB, command)
+			err = cache.Refresh(command)
 			Expect(err).ToNot(HaveOccurred())
 
 			actual, err := cache.Find("vim", testDB.DB)
@@ -39,12 +40,13 @@ var _ = Describe("InfoCache", func() {
 			testDB, err := NewTestDB(dbFile)
 			Expect(err).ToNot(HaveOccurred())
 			defer testDB.Close()
+			cache.DB = testDB.DB
 
 			Expect(testDB.AddTestBrews("vim")).To(Succeed())
 
 			command := exec.Command("echo", `[ { "full_name": "emacs" } ]`)
 
-			err = cache.Refresh(testDB.DB, command)
+			err = cache.Refresh(command)
 			Expect(err).ToNot(HaveOccurred())
 
 			actual, err := cache.Find("emacs", testDB.DB)
@@ -53,11 +55,12 @@ var _ = Describe("InfoCache", func() {
 		})
 	})
 
-	Describe("With a populated InfoCache", func() {
+	Describe("With a populated Cache", func() {
 		It("Should find and return the Info of a package", func() {
 			testDB, err := NewTestDB(dbFile)
 			Expect(err).ToNot(HaveOccurred())
 			defer testDB.Close()
+			cache.DB = testDB.DB
 
 			Expect(testDB.AddTestBrews("vim")).To(Succeed())
 
@@ -72,6 +75,7 @@ var _ = Describe("InfoCache", func() {
 			testDB, err := NewTestDB(dbFile)
 			Expect(err).ToNot(HaveOccurred())
 			defer testDB.Close()
+			cache.DB = testDB.DB
 
 			Expect(testDB.AddTestBrews("vim")).To(Succeed())
 

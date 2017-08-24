@@ -84,7 +84,6 @@ bfm add -m Xcode -i 497799835
 `,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		var cache brew.InfoCache
 		var packages brewfile.Packages
 
 		db, err := bolt.Open(boltPath, 0600, nil)
@@ -92,12 +91,14 @@ bfm add -m Xcode -i 497799835
 			errorExit(err)
 		}
 
-		err = Add(args, &packages, cache, brewfilePath, addFlags, db)
+		cache := brew.Cache{DB: db}
+
+		err = Add(args, &packages, cache, brewfilePath, addFlags)
 		errorExit(err)
 	},
 }
 
-func Add(args []string, packages *brewfile.Packages, cache brew.InfoCache, brewfilePath string, flags Flags, db *bolt.DB) error {
+func Add(args []string, packages *brewfile.Packages, cache brew.Cache, brewfilePath string, flags Flags) error {
 	if !flagProvided(flags) {
 		return ErrNoPackageType("add")
 	}
@@ -114,8 +115,8 @@ func Add(args []string, packages *brewfile.Packages, cache brew.InfoCache, brewf
 	}
 
 	cacheMap := brew.CacheMap{Cache: &cache, Map: make(brew.Map)}
-	cacheMap.FromPackages(packages.Brew, db)
-	cacheMap.ResolveRequiredDependencyMap(db)
+	cacheMap.FromPackages(packages.Brew)
+	cacheMap.ResolveRequiredDependencyMap()
 
 	if flags.Tap {
 		if !hasCorrectTapFormat(toAdd) {
@@ -126,7 +127,7 @@ func Add(args []string, packages *brewfile.Packages, cache brew.InfoCache, brewf
 	}
 
 	if flags.Brew {
-		updated, err := addBrewPackage(toAdd, flags.RestartService, flags.Args, cacheMap, flags, db)
+		updated, err := addBrewPackage(toAdd, flags.RestartService, flags.Args, cacheMap, flags)
 		if err != nil {
 			return err
 		}
@@ -159,7 +160,7 @@ func Add(args []string, packages *brewfile.Packages, cache brew.InfoCache, brewf
 	return nil
 }
 
-func addBrewPackage(add, restart string, args []string, cacheMap brew.CacheMap, flags Flags, db *bolt.DB) ([]string, error) {
+func addBrewPackage(add, restart string, args []string, cacheMap brew.CacheMap, flags Flags) ([]string, error) {
 	if len(restart) > 1 {
 		switch restart {
 		case "always":
@@ -172,15 +173,15 @@ func addBrewPackage(add, restart string, args []string, cacheMap brew.CacheMap, 
 	}
 
 	if flags.AddAll {
-		if err := cacheMap.Add(brew.Entry{Name: add, RestartService: restart, Args: args}, brew.AddAll, db); err != nil {
+		if err := cacheMap.Add(brew.Entry{Name: add, RestartService: restart, Args: args}, brew.AddAll); err != nil {
 			return []string{}, err
 		}
 	} else if flags.AddPackageAndRequired {
-		if err := cacheMap.Add(brew.Entry{Name: add, RestartService: restart, Args: args}, brew.AddPackageAndRequired, db); err != nil {
+		if err := cacheMap.Add(brew.Entry{Name: add, RestartService: restart, Args: args}, brew.AddPackageAndRequired); err != nil {
 			return []string{}, err
 		}
 	} else {
-		if err := cacheMap.Add(brew.Entry{Name: add, RestartService: restart, Args: args}, brew.AddPackageOnly, db); err != nil {
+		if err := cacheMap.Add(brew.Entry{Name: add, RestartService: restart, Args: args}, brew.AddPackageOnly); err != nil {
 			return []string{}, err
 		}
 	}

@@ -13,7 +13,7 @@ import (
 var _ = Describe("Map", func() {
 	var (
 		cacheMap             CacheMap
-		cache                InfoCache
+		cache                Cache
 		dbFile               = fmt.Sprintf("%s/src/github.com/lgug2z/bfm/testData/testDB.bolt", os.Getenv("GOPATH"))
 		infoWithDependencies = []Info{
 			Info{FullName: "vim",
@@ -40,11 +40,12 @@ var _ = Describe("Map", func() {
 			testDB, err := NewTestDB(dbFile)
 			Expect(err).ToNot(HaveOccurred())
 			defer testDB.Close()
+			cache.DB = testDB.DB
 
 			Expect(testDB.AddTestBrews("vim", "emacs")).To(Succeed())
 			packages := []string{"brew 'vim'", "brew 'emacs'"}
 
-			cacheMap.FromPackages(packages, testDB.DB)
+			cacheMap.FromPackages(packages)
 			vimEntry := Entry{Name: "vim", Info: Info{FullName: "vim"}}
 			emacsEntry := Entry{Name: "emacs", Info: Info{FullName: "emacs"}}
 
@@ -56,10 +57,11 @@ var _ = Describe("Map", func() {
 			testDB, err := NewTestDB(dbFile)
 			Expect(err).ToNot(HaveOccurred())
 			defer testDB.Close()
+			cache.DB = testDB.DB
 
 			Expect(testDB.AddTestBrews("vim")).To(Succeed())
 			packages := []string{"brew 'vim'", "brew 'emacs'"}
-			cacheMap.FromPackages(packages, testDB.DB)
+			cacheMap.FromPackages(packages)
 
 			vimEntry := Entry{Name: "vim", Info: Info{FullName: "vim"}}
 			Expect(cacheMap.Map).To(HaveKeyWithValue("vim", vimEntry))
@@ -67,11 +69,12 @@ var _ = Describe("Map", func() {
 		})
 	})
 
-	Describe("Populated with packages and with an InfoCache", func() {
+	Describe("Populated with packages and with a Cache", func() {
 		It("Should update all entries in the map with whichever other packages that entry is required by", func() {
 			testDB, err := NewTestDB(dbFile)
 			Expect(err).ToNot(HaveOccurred())
 			defer testDB.Close()
+			cache.DB = testDB.DB
 
 			Expect(testDB.AddTestBrewsFromInfo(
 				Info{FullName: "vim", Dependencies: []string{"python"}},
@@ -79,9 +82,9 @@ var _ = Describe("Map", func() {
 			)).To(Succeed())
 
 			packages := []string{"brew 'vim'", "brew 'python'"}
-			cacheMap.FromPackages(packages, testDB.DB)
+			cacheMap.FromPackages(packages)
 
-			cacheMap.ResolveRequiredDependencyMap(testDB.DB)
+			cacheMap.ResolveRequiredDependencyMap()
 
 			Expect(cacheMap.Map["python"].RequiredBy).To(ContainElement("vim"))
 		})
@@ -92,10 +95,11 @@ var _ = Describe("Map", func() {
 			testDB, err := NewTestDB(dbFile)
 			Expect(err).ToNot(HaveOccurred())
 			defer testDB.Close()
+			cache.DB = testDB.DB
 
 			Expect(testDB.AddTestBrewsFromInfo(infoWithDependencies...)).To(Succeed())
 
-			cacheMap.Add(Entry{Name: "vim", RestartService: "true", Args: []string{"with-override-system-vim"}}, AddPackageOnly, testDB.DB)
+			cacheMap.Add(Entry{Name: "vim", RestartService: "true", Args: []string{"with-override-system-vim"}}, AddPackageOnly)
 
 			Expect(cacheMap.Map).To(HaveKey("vim"))
 			notHave := []string{"ruby", "python", "go", "node"}
@@ -108,10 +112,11 @@ var _ = Describe("Map", func() {
 			testDB, err := NewTestDB(dbFile)
 			Expect(err).ToNot(HaveOccurred())
 			defer testDB.Close()
+			cache.DB = testDB.DB
 
 			Expect(testDB.AddTestBrewsFromInfo(infoWithDependencies...)).To(Succeed())
 
-			cacheMap.Add(Entry{Name: "vim", RestartService: "true", Args: []string{"with-override-system-vim"}}, AddPackageAndRequired, testDB.DB)
+			cacheMap.Add(Entry{Name: "vim", RestartService: "true", Args: []string{"with-override-system-vim"}}, AddPackageAndRequired)
 
 			have := []string{"vim", "python"}
 			for _, e := range have {
@@ -128,10 +133,11 @@ var _ = Describe("Map", func() {
 			testDB, err := NewTestDB(dbFile)
 			Expect(err).ToNot(HaveOccurred())
 			defer testDB.Close()
+			cache.DB = testDB.DB
 
 			Expect(testDB.AddTestBrewsFromInfo(infoWithDependencies...)).To(Succeed())
 
-			cacheMap.Add(Entry{Name: "vim", RestartService: "true", Args: []string{"with-override-system-vim"}}, AddAll, testDB.DB)
+			cacheMap.Add(Entry{Name: "vim", RestartService: "true", Args: []string{"with-override-system-vim"}}, AddAll)
 
 			have := []string{"vim", "python", "ruby", "go", "node"}
 			for _, e := range have {
@@ -140,15 +146,16 @@ var _ = Describe("Map", func() {
 		})
 	})
 
-	Describe("Initialised with an InfoCache and populated with packages", func() {
+	Describe("Initialised with a Cache and populated with packages", func() {
 		It("Should remove a package without removing any of its dependencies", func() {
 			testDB, err := NewTestDB(dbFile)
 			Expect(err).ToNot(HaveOccurred())
 			defer testDB.Close()
+			cache.DB = testDB.DB
 
 			Expect(testDB.AddTestBrewsFromInfo(infoWithDependencies...)).To(Succeed())
 
-			cacheMap.Add(Entry{Name: "vim", RestartService: "true", Args: []string{"with-override-system-vim"}}, AddAll, testDB.DB)
+			cacheMap.Add(Entry{Name: "vim", RestartService: "true", Args: []string{"with-override-system-vim"}}, AddAll)
 			cacheMap.Remove("vim", RemovePackageOnly)
 
 			have := []string{"python", "ruby", "go", "node"}
@@ -166,10 +173,11 @@ var _ = Describe("Map", func() {
 			testDB, err := NewTestDB(dbFile)
 			Expect(err).ToNot(HaveOccurred())
 			defer testDB.Close()
+			cache.DB = testDB.DB
 
 			Expect(testDB.AddTestBrewsFromInfo(infoWithDependencies...)).To(Succeed())
 
-			cacheMap.Add(Entry{Name: "vim", RestartService: "true", Args: []string{"with-override-system-vim"}}, AddAll, testDB.DB)
+			cacheMap.Add(Entry{Name: "vim", RestartService: "true", Args: []string{"with-override-system-vim"}}, AddAll)
 			cacheMap.Remove("vim", RemovePackageAndRequired)
 
 			have := []string{"ruby", "go", "node"}
@@ -187,10 +195,11 @@ var _ = Describe("Map", func() {
 			testDB, err := NewTestDB(dbFile)
 			Expect(err).ToNot(HaveOccurred())
 			defer testDB.Close()
+			cache.DB = testDB.DB
 
 			Expect(testDB.AddTestBrewsFromInfo(infoWithDependencies...)).To(Succeed())
 
-			cacheMap.Add(Entry{Name: "vim", RestartService: "true", Args: []string{"with-override-system-vim"}}, AddAll, testDB.DB)
+			cacheMap.Add(Entry{Name: "vim", RestartService: "true", Args: []string{"with-override-system-vim"}}, AddAll)
 			cacheMap.Remove("vim", RemoveAll)
 
 			notHave := []string{"vim", "python", "ruby", "go", "node"}
