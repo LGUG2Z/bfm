@@ -53,14 +53,17 @@ func (c CacheMap) FromPackages(entries []string, db *bolt.DB) error {
 	return nil
 }
 
-func (c CacheMap) ResolveRequiredDependencyMap(db *bolt.DB) {
+func (c CacheMap) ResolveRequiredDependencyMap(db *bolt.DB) error {
 	for _, b := range c.Map {
 		if len(b.RequiredDependencies) > 0 {
 			for _, d := range b.RequiredDependencies {
-				c.addRequiredBy(d, b.Name, db)
+				if err := c.addRequiredBy(d, b.Name, db); err != nil {
+					return err
+				}
 			}
 		}
 	}
+	return nil
 }
 
 func (c CacheMap) Add(entry Entry, opt int, db *bolt.DB) error {

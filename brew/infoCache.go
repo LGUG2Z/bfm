@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"os/exec"
 
-	"errors"
-
 	"github.com/boltdb/bolt"
 )
 
@@ -146,7 +144,7 @@ func (i InfoCache) Find(pkg string, db *bolt.DB) (Info, error) {
 		v := b.Get([]byte(pkg))
 
 		if v == nil {
-			return errors.New("Could not find package.")
+			return ErrCouldNotFindPackageInfo(pkg)
 		}
 
 		err := json.Unmarshal(v, &info)
@@ -158,7 +156,6 @@ func (i InfoCache) Find(pkg string, db *bolt.DB) (Info, error) {
 	})
 
 	if err != nil {
-		// TODO: Custom error for package not found
 		return Info{}, err
 	}
 
