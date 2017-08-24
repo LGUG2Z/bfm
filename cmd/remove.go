@@ -48,23 +48,7 @@ func init() {
 var removeCmd = &cobra.Command{
 	Use:   "remove",
 	Short: "Remove a dependency from your Brewfile",
-	Long: `
-Removes the dependency given as an argument from the Brewfile.
-
-This command will modify your Brewfile without creating
-a backup. Consider running the command with the --dry-run
-flag if using bfm for the first time.
-
-The type must be specified using the appropriate flag.
-
-Examples:
-
-bfm remove -t homebrew/dupes
-bfm remove -b vim
-bfm remove -c macvim
-bfm remove -m Xcode
-
-`,
+	Long: DocsRemove,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		var packages brewfile.Packages

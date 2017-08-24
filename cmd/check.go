@@ -37,21 +37,8 @@ func init() {
 var checkCmd = &cobra.Command{
 	Use:   "check",
 	Short: "Check if a dependency is in your Brewfile",
-	Long: `
-Checks for the presence of the dependency given as an
-argument in the Brewfile.
-
-The type must be specified using the appropriate flag.
-
-Examples:
-
-bfm check -t homebrew/dupes
-bfm check -b vim
-bfm check -c macvim
-bfm check -m Xcode
-
-`,
-	Args: cobra.ExactArgs(1),
+	Long:  DocsCheck,
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if !flagProvided(checkFlags) {
 			fmt.Println("A package type must be specified. See 'bfm check --help'.")

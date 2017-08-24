@@ -53,35 +53,7 @@ func init() {
 var addCmd = &cobra.Command{
 	Use:   "add",
 	Short: "Add a dependency to your Brewfile",
-	Long: `
-Adds the dependency given as an argument to the Brewfile.
-
-This command will modify your Brewfile without creating
-a backup. Consider running the command with the --dry-run
-flag if using bfm for the first time.
-
-The type must be specified using the appropriate flag.
-
-Taps must conform to the format <user/repo>.
-
-Brew packages can have arguments specified using the --arg
-flag (multiple arguments can be separated by using a comma),
-and can specify service restart behaviour (always: restart
-every time bundle is run, changed: only when updated or
-changed) with the --restart-service flag.
-
-MAS apps must specify an id using the --mas-id flag which
-can be found by running 'mas search <app>'.
-
-Examples:
-
-bfm add -t homebrew/dupes
-bfm add -b vim -a HEAD,with-override-system-vi
-bfm add -b crisidev/chunkwm/chunkwm -r changed
-bfm add -c macvim
-bfm add -m Xcode -i 497799835
-
-`,
+	Long: DocsAdd,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		var packages brewfile.Packages

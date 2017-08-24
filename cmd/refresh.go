@@ -11,7 +11,7 @@ import (
 var refreshCmd = &cobra.Command{
 	Use:   "refresh",
 	Short: "Refresh the cache of Homebrew formula information",
-	Long:  ``,
+	Long:  DocsRefresh,
 	Run: func(cmd *cobra.Command, args []string) {
 		infoCommand := exec.Command("brew", "info", "--all", "--json=v1")
 

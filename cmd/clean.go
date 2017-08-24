@@ -44,18 +44,9 @@ func init() {
 // cleanCmd represents the clean command
 var cleanCmd = &cobra.Command{
 	Use:   "clean",
-	Short: "Clean yp your Brewfile",
-	Long: `
-Cleans up your Brewfile, removing all comments and
-sorting all dependencies into alphabetised groups
-with the order tap -> brew -> cask -> mas.
-
-This command will modify your Brewfile without creating
-a backup. Consider running the command with the --dry-run
-flag if using bfm for the first time.
-
-`,
-	Args: cobra.NoArgs,
+	Short: "Clean up your Brewfile",
+	Long:  DocsClean,
+	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		var packages brewfile.Packages
 
