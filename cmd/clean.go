@@ -76,8 +76,13 @@ func Clean(args []string, packages *brewfile.Packages, cache brew.InfoCache, bre
 	}
 
 	cacheMap := brew.CacheMap{Cache: &cache, Map: make(brew.Map)}
-	cacheMap.FromPackages(packages.Brew, db)
-	cacheMap.ResolveRequiredDependencyMap(db)
+	if err := cacheMap.FromPackages(packages.Brew, db); err != nil {
+		return err
+	}
+
+	if err := cacheMap.ResolveRequiredDependencyMap(db); err != nil {
+		return err
+	}
 
 	cleanBrews, err := cleanBrews(cacheMap)
 	if err != nil {

@@ -36,9 +36,11 @@ cask 'firefox'
 			Expect(err).ToNot(HaveOccurred())
 			defer testDB.Close()
 
-			testDB.AddTestBrews("a2ps")
+			testDB.AddTestBrewsByName("a2ps")
 
-			Expect(createTestFile(bf, contents)).To(Succeed())
+			t := TestFile{Path: bf, Contents: contents}
+			Expect(t.Create()).To(Succeed())
+			defer t.Remove()
 
 			expectedPackages := brewfile.Packages{
 				Tap:  []string{"tap 'homebrew/bundle'", "tap 'homebrew/core'"},
@@ -50,7 +52,20 @@ cask 'firefox'
 			Clean([]string{}, &packages, cache, bf, Flags{DryRun: false}, testDB.DB)
 
 			Expect(packages).To(Equal(expectedPackages))
-			Expect(removeTestFile(bf)).To(Succeed())
+		})
+
+		It("Should not proceed if a package in the Brewfile is not in the BoltDB cache", func() {
+			testDB, err := NewTestDB(dbFile)
+			Expect(err).ToNot(HaveOccurred())
+			defer testDB.Close()
+
+			t := TestFile{Path: bf, Contents: contents}
+			Expect(t.Create()).To(Succeed())
+			defer t.Remove()
+
+			err = Clean([]string{}, &packages, cache, bf, Flags{DryRun: false}, testDB.DB)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(Equal(brew.ErrCouldNotFindPackageInfo("a2ps").Error()))
 		})
 
 		It("Should write out a new Brewfile in alphabetical order split into tap, brew, cask and mas sections", func() {
@@ -68,9 +83,11 @@ mas 'Xcode', id: 497799835`
 			Expect(err).ToNot(HaveOccurred())
 			defer testDB.Close()
 
-			testDB.AddTestBrews("a2ps")
+			testDB.AddTestBrewsByName("a2ps")
 
-			Expect(createTestFile(bf, contents)).To(Succeed())
+			t := TestFile{Path: bf, Contents: contents}
+			Expect(t.Create()).To(Succeed())
+			defer t.Remove()
 
 			Clean([]string{}, &packages, cache, bf, Flags{DryRun: false}, testDB.DB)
 
@@ -78,7 +95,6 @@ mas 'Xcode', id: 497799835`
 			Expect(error).To(BeNil())
 
 			Expect(bytes).To(Equal([]byte(expectedContents)))
-			Expect(removeTestFile(bf)).To(Succeed())
 		})
 
 		It("Should not modify the existing Brewfile if the --dry-run flag is set", func() {
@@ -86,9 +102,11 @@ mas 'Xcode', id: 497799835`
 			Expect(err).ToNot(HaveOccurred())
 			defer testDB.Close()
 
-			testDB.AddTestBrews("a2ps")
+			testDB.AddTestBrewsByName("a2ps")
 
-			Expect(createTestFile(bf, contents)).To(Succeed())
+			t := TestFile{Path: bf, Contents: contents}
+			Expect(t.Create()).To(Succeed())
+			defer t.Remove()
 
 			_ = captureStdout(func() {
 				Clean([]string{}, &packages, cache, bf, Flags{DryRun: true}, testDB.DB)
@@ -98,7 +116,6 @@ mas 'Xcode', id: 497799835`
 			Expect(error).To(BeNil())
 
 			Expect(bytes).To(Equal([]byte(contents)))
-			Expect(removeTestFile(bf)).To(Succeed())
 		})
 
 		It("Should output the cleaned Brewfile contents to stdout", func() {
@@ -106,9 +123,11 @@ mas 'Xcode', id: 497799835`
 			Expect(err).ToNot(HaveOccurred())
 			defer testDB.Close()
 
-			testDB.AddTestBrews("a2ps")
+			testDB.AddTestBrewsByName("a2ps")
 
-			Expect(createTestFile(bf, contents)).To(Succeed())
+			t := TestFile{Path: bf, Contents: contents}
+			Expect(t.Create()).To(Succeed())
+			defer t.Remove()
 
 			expectedOutput := `tap 'homebrew/bundle'
 tap 'homebrew/core'
@@ -126,7 +145,6 @@ mas 'Xcode', id: 497799835
 			})
 
 			Expect(output).To(Equal(expectedOutput))
-			Expect(removeTestFile(bf)).To(Succeed())
 		})
 	})
 })

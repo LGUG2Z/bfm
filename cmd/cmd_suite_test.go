@@ -44,6 +44,17 @@ func NewTestDB(path string) (*TestDB, error) {
 	if err != nil {
 		return nil, err
 	}
+	err = db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte("brew"))
+		if err != nil {
+			return fmt.Errorf("create bucket: %s", err)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return &TestDB{}, err
+	}
 
 	return &TestDB{db}, nil
 }
@@ -53,21 +64,9 @@ func (db *TestDB) Close() {
 	db.DB.Close()
 }
 
-func (db *TestDB) AddTestBrews(names ...string) error {
-	err := db.Update(func(tx *bolt.Tx) error {
-		_, err := tx.CreateBucketIfNotExists([]byte("brew"))
-		if err != nil {
-			return fmt.Errorf("create bucket: %s", err)
-		}
-		return nil
-	})
-
-	if err != nil {
-		return err
-	}
-
+func (db *TestDB) AddTestBrewsByName(names ...string) error {
 	for _, n := range names {
-		err = db.Update(func(tx *bolt.Tx) error {
+		err := db.Update(func(tx *bolt.Tx) error {
 			b := tx.Bucket([]byte("brew"))
 
 			value, err := json.Marshal(brew.Info{FullName: n})
@@ -81,16 +80,16 @@ func (db *TestDB) AddTestBrews(names ...string) error {
 
 			return nil
 		})
-	}
 
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-func (db *TestDB) AddTestBrewsFromInfo(info ...brew.Info) error {
+func (db *TestDB) AddTestBrewsFromInfo(infos ...brew.Info) error {
 	err := db.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte("brew"))
 		if err != nil {
@@ -103,7 +102,7 @@ func (db *TestDB) AddTestBrewsFromInfo(info ...brew.Info) error {
 		return err
 	}
 
-	for _, i := range info {
+	for _, i := range infos {
 		err = db.Update(func(tx *bolt.Tx) error {
 			b := tx.Bucket([]byte("brew"))
 
@@ -127,8 +126,12 @@ func (db *TestDB) AddTestBrewsFromInfo(info ...brew.Info) error {
 	return nil
 }
 
-func createTestFile(file, contents string) error {
-	err := ioutil.WriteFile(file, []byte(contents), 0644)
+type TestFile struct {
+	Path, Contents string
+}
+
+func (t *TestFile) Create() error {
+	err := ioutil.WriteFile(t.Path, []byte(t.Contents), 0644)
 	if err != nil {
 		return err
 	}
@@ -136,11 +139,6 @@ func createTestFile(file, contents string) error {
 	return nil
 }
 
-func removeTestFile(file string) error {
-	err := os.Remove(file)
-	if err != nil {
-		return err
-	}
-
-	return nil
+func (t *TestFile) Remove() {
+	os.Remove(t.Path)
 }
