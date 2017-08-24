@@ -165,14 +165,14 @@ brew 'unibilium'
 If we also have the GnuPG package in our Brewfile, which also requires GNU gettext,
 `bfm remove -b neovim --required` will result in:
 
-`
+```
 brew 'cmake'
 brew 'gettext' # required by: gnupg
 brew 'gnupg'
 brew 'lua@5.1'
 brew 'luajit'
 brew 'pkg-config'
-`
+```
 
 Similarly `bfm remove -b neovim --all` will result in:
 
