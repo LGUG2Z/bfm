@@ -9,7 +9,6 @@ import (
 type Entry struct {
 	Args                    []string
 	BuildDependencies       []string
-	Info                    Info
 	Name                    string
 	OptionalDependencies    []string
 	RecommendedDependencies []string
@@ -20,26 +19,25 @@ type Entry struct {
 
 func (e *Entry) FromInfo(i Info) {
 	e.Name = i.FullName
-	e.Info = i
-	e.DetermineDependencies()
+	e.DetermineDependencies(i)
 }
 
-func (e *Entry) DetermineDependencies() {
-	for _, dependency := range e.Info.Dependencies {
+func (e *Entry) DetermineDependencies(i Info) {
+	for _, dependency := range i.Dependencies {
 		e.RequiredDependencies = append(e.RequiredDependencies, dependency)
 	}
 
-	for _, optional := range e.Info.OptionalDependencies {
+	for _, optional := range i.OptionalDependencies {
 		e.RequiredDependencies = remove(e.RequiredDependencies, optional)
 		e.OptionalDependencies = append(e.OptionalDependencies, optional)
 	}
 
-	for _, build := range e.Info.BuildDependencies {
+	for _, build := range i.BuildDependencies {
 		e.RequiredDependencies = remove(e.RequiredDependencies, build)
 		e.BuildDependencies = append(e.BuildDependencies, build)
 	}
 
-	for _, recommended := range e.Info.RecommendedDependencies {
+	for _, recommended := range i.RecommendedDependencies {
 		e.RequiredDependencies = remove(e.RequiredDependencies, recommended)
 		e.RecommendedDependencies = append(e.RecommendedDependencies, recommended)
 	}

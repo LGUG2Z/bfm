@@ -13,14 +13,14 @@ type CacheMap struct {
 	Cache *Cache
 }
 
-func (c CacheMap) FromPackages(entries []string) error {
+func (c CacheMap) FromPackages(packages []string) error {
 	quotesRegexp := regexp.MustCompile(`'\S+'`)
 	argsRegexp := regexp.MustCompile(`\[.*\]`)
 	restartRegexp := regexp.MustCompile(`restart_service: (:changed|true)`)
 	restartBehaviourRegexp := regexp.MustCompile(`(:changed|true)`)
 
-	for _, e := range entries {
-		match := quotesRegexp.FindString(e)
+	for _, p := range packages {
+		match := quotesRegexp.FindString(p)
 		pkg := match[1 : len(match)-1]
 
 		info, err := c.Cache.Find(pkg, c.Cache.DB)
@@ -28,24 +28,24 @@ func (c CacheMap) FromPackages(entries []string) error {
 			return err
 		}
 
-		b := Entry{}
-		b.FromInfo(info)
+		e := Entry{}
+		e.FromInfo(info)
 
-		args := argsRegexp.FindString(e)
+		args := argsRegexp.FindString(p)
 		if len(args) > 0 {
 			matches := quotesRegexp.FindAllString(args, -1)
 			for _, m := range matches {
 				arg := m[1 : len(m)-1]
-				b.Args = append(b.Args, arg)
+				e.Args = append(e.Args, arg)
 			}
 		}
 
-		restartService := restartRegexp.FindString(e)
+		restartService := restartRegexp.FindString(p)
 		if len(restartService) > 0 {
-			b.RestartService = restartBehaviourRegexp.FindString(restartService)
+			e.RestartService = restartBehaviourRegexp.FindString(restartService)
 		}
 
-		c.Map[info.FullName] = b
+		c.Map[info.FullName] = e
 	}
 
 	return nil

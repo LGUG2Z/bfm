@@ -46,8 +46,8 @@ var _ = Describe("Map", func() {
 			packages := []string{"brew 'vim'", "brew 'emacs'"}
 
 			cacheMap.FromPackages(packages)
-			vimEntry := Entry{Name: "vim", Info: Info{FullName: "vim"}}
-			emacsEntry := Entry{Name: "emacs", Info: Info{FullName: "emacs"}}
+			vimEntry := Entry{Name: "vim"}
+			emacsEntry := Entry{Name: "emacs"}
 
 			Expect(cacheMap.Map).To(HaveKeyWithValue("vim", vimEntry))
 			Expect(cacheMap.Map).To(HaveKeyWithValue("emacs", emacsEntry))
@@ -63,7 +63,7 @@ var _ = Describe("Map", func() {
 			packages := []string{"brew 'vim'", "brew 'emacs'"}
 			cacheMap.FromPackages(packages)
 
-			vimEntry := Entry{Name: "vim", Info: Info{FullName: "vim"}}
+			vimEntry := Entry{Name: "vim"}
 			Expect(cacheMap.Map).To(HaveKeyWithValue("vim", vimEntry))
 			Expect(cacheMap.Map).ToNot(HaveKey("emacs"))
 		})

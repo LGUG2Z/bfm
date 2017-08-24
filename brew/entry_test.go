@@ -9,12 +9,12 @@ import (
 
 var _ = Describe("Entry", func() {
 	var (
-		infoMixedDependencies Info
-		actual                Entry
+		info   Info
+		actual Entry
 	)
 
 	BeforeEach(func() {
-		infoMixedDependencies = Info{
+		info = Info{
 			FullName:                "a",
 			Dependencies:            []string{"b", "c", "d", "e", "f"},
 			OptionalDependencies:    []string{"c"},
@@ -31,10 +31,9 @@ var _ = Describe("Entry", func() {
 				OptionalDependencies:    []string{"c"},
 				BuildDependencies:       []string{"d"},
 				RecommendedDependencies: []string{"e", "f"},
-				Info: infoMixedDependencies,
 			}
 
-			actual.FromInfo(infoMixedDependencies)
+			actual.FromInfo(info)
 			Expect(actual).To(Equal(expected))
 		})
 	})
@@ -47,15 +46,13 @@ var _ = Describe("Entry", func() {
 			OptionalDependencies:    []string{"c"},
 			BuildDependencies:       []string{"d"},
 			RecommendedDependencies: []string{"e", "f"},
-			Info: infoMixedDependencies,
 		}
 
 		actual = Entry{
 			Name: "a",
-			Info: infoMixedDependencies,
 		}
 
-		actual.DetermineDependencies()
+		actual.DetermineDependencies(info)
 		Expect(actual).To(Equal(expected))
 	})
 
