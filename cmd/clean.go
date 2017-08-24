@@ -17,11 +17,10 @@ package cmd
 import (
 	"fmt"
 
-	"os"
-
 	"io/ioutil"
 	"sort"
 
+	"github.com/boltdb/bolt"
 	"github.com/lgug2z/bfm/brew"
 	"github.com/lgug2z/bfm/brewfile"
 	"github.com/spf13/cobra"
@@ -60,23 +59,32 @@ flag if using bfm for the first time.
 	Run: func(cmd *cobra.Command, args []string) {
 		var cache brew.InfoCache
 		var packages brewfile.Packages
-		Clean(args, &packages, cache, brewfilePath, brewInfoPath, cleanFlags)
+
+		db, err := bolt.Open(boltFilePath, 0600, nil)
+		if err != nil {
+			errorExit(err)
+		}
+
+		err = Clean(args, &packages, cache, brewfilePath, brewInfoPath, cleanFlags, db)
+		errorExit(err)
 	},
 }
 
-func Clean(args []string, packages *brewfile.Packages, cache brew.InfoCache, brewfilePath, brewInfoPath string, flags Flags) {
-	error := packages.FromBrewfile(brewfilePath)
-	errorExit(error)
+func Clean(args []string, packages *brewfile.Packages, cache brew.InfoCache, brewfilePath, brewInfoPath string, flags Flags, db *bolt.DB) error {
+	err := packages.FromBrewfile(brewfilePath)
+	errorExit(err)
 
-	error = cache.Read(brewInfoPath)
-	errorExit(error)
+	err = cache.Read(brewInfoPath)
+	errorExit(err)
 
 	cacheMap := brew.CacheMap{Cache: &cache, Map: make(brew.Map)}
-	cacheMap.FromPackages(packages.Brew)
-	cacheMap.ResolveRequiredDependencyMap()
+	cacheMap.FromPackages(packages.Brew, db)
+	cacheMap.ResolveRequiredDependencyMap(db)
 
-	cleanBrews, error := cleanBrews(cacheMap)
-	errorExit(error)
+	cleanBrews, err := cleanBrews(cacheMap)
+	if err != nil {
+		return err
+	}
 
 	packages.Brew = cleanBrews
 
@@ -84,10 +92,11 @@ func Clean(args []string, packages *brewfile.Packages, cache brew.InfoCache, bre
 		fmt.Println(string(packages.Bytes()))
 	} else {
 		if err := ioutil.WriteFile(brewfilePath, packages.Bytes(), 0644); err != nil {
-			fmt.Print(err)
-			os.Exit(1)
+			return err
 		}
 	}
+
+	return nil
 }
 
 func cleanBrews(cacheMap brew.CacheMap) ([]string, error) {

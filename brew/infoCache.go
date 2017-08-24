@@ -2,11 +2,13 @@ package brew
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
+
+	"github.com/boltdb/bolt"
+	"errors"
 )
 
 type Info struct {
@@ -86,22 +88,66 @@ type Info struct {
 
 type InfoCache []Info
 
-func (i *InfoCache) Refresh(file string, command *exec.Cmd) error {
+func (i *InfoCache) Refresh(db *bolt.DB, command *exec.Cmd) error {
 	b, err := command.Output()
 	if err != nil {
 		return err
 	}
 
-	if err := ioutil.WriteFile(file, b, 0644); err != nil {
+	if err != nil {
 		return err
 	}
+
+	err = db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte("brew"))
+		if err != nil {
+			return fmt.Errorf("create bucket: %s", err)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	if err := json.Unmarshal(b, &i); err != nil {
+		return err
+	}
+
+	for _, pkg := range []Info(*i) {
+		err := db.Update(func(tx *bolt.Tx) error {
+			b := tx.Bucket([]byte("brew"))
+
+			key := pkg.FullName
+			value, err := json.Marshal(pkg)
+			if err != nil {
+				return err
+			}
+
+			if err := b.Put([]byte(key), []byte(value)); err != nil {
+				return err
+			}
+
+			return nil
+		})
+
+		if err != nil {
+			return err
+		}
+	}
+
+	// TODO: Deprecate this
+	//if error := ioutil.WriteFile(file, b, 0644); error != nil {
+	//	return error
+	//}
 
 	return nil
 }
 
+// TODO Deprecate this
 func (i *InfoCache) Read(file string) error {
 	if _, err := os.Stat(file); os.IsNotExist(err) {
-		i.Refresh(file, exec.Command("brew", "info", "--all", "--json=v1"))
+		//i.Refresh(db, exec.Command("brew", "info", "--all", "--json=v1"))
 	}
 
 	b, err := ioutil.ReadFile(file)
@@ -116,12 +162,29 @@ func (i *InfoCache) Read(file string) error {
 	return nil
 }
 
-func (i InfoCache) Find(pkg string) (Info, error) {
-	for _, b := range i {
-		if pkg == b.Name || pkg == b.FullName || pkg == b.Oldname {
-			return b, nil
+func (i InfoCache) Find(pkg string, db *bolt.DB) (Info, error) {
+	var info Info
+
+	err := db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("brew"))
+		v := b.Get([]byte(pkg))
+
+		if v == nil {
+			return errors.New("Could not find package.")
 		}
+
+		err := json.Unmarshal(v, &info)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		// TODO: Custom error for package not found
+		return Info{}, err
 	}
 
-	return Info{}, errors.New(fmt.Sprintf("Could not find info for package %s. Run 'bfm refresh' and try again.", pkg))
+	return info, nil
 }

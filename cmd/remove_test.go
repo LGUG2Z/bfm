@@ -4,19 +4,21 @@ import (
 	. "github.com/lgug2z/bfm/cmd"
 
 	"fmt"
+	"os"
+
 	"github.com/lgug2z/bfm/brew"
 	"github.com/lgug2z/bfm/brewfile"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"io/ioutil"
-	"os"
 )
 
 var _ = Describe("Remove", func() {
 
-	var bf string = fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "/src/github.com/lgug2z/bfm/testData/testBrewfile")
-	var info string = fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "/src/github.com/lgug2z/bfm/testData/test.json")
-	var testInfo string = fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "/src/github.com/lgug2z/bfm/testData/testInfo.json")
+	var bf = fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "/src/github.com/lgug2z/bfm/testData/testBrewfile")
+	var info = fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "/src/github.com/lgug2z/bfm/testData/test.json")
+	var dbFile = fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "src/github.com/lgug2z/bfm/testData/testDB.bolt")
+
 	var cache brew.InfoCache
 	var packages brewfile.Packages
 
@@ -27,7 +29,7 @@ var _ = Describe("Remove", func() {
 
 	Describe("When the command is called without any flags", func() {
 		It("Should return an error with info about required flags for specifying package types", func() {
-			error := Remove([]string{"something"}, &brewfile.Packages{}, brew.InfoCache{}, "", "", Flags{})
+			error := Remove([]string{"something"}, &brewfile.Packages{}, brew.InfoCache{}, "", "", Flags{}, TestDB{}.DB)
 			Expect(error).To(HaveOccurred())
 
 			errorMessage := error.Error()
@@ -39,7 +41,7 @@ var _ = Describe("Remove", func() {
 		It("Should return an error with an explanation if the package is not in the Brewfile", func() {
 			Expect(createTestFile(bf, "")).To(Succeed())
 
-			error := Remove([]string{"a2ps"}, &packages, cache, bf, info, Flags{Brew: true})
+			error := Remove([]string{"a2ps"}, &packages, cache, bf, info, Flags{Brew: true}, TestDB{}.DB)
 			Expect(error).To(HaveOccurred())
 
 			errorMessage := error.Error()
@@ -49,10 +51,16 @@ var _ = Describe("Remove", func() {
 		})
 
 		It("Should not modify the Brewfile if the --dry-run flag is set", func() {
+			testDB, err := NewTestDB(dbFile)
+			Expect(err).ToNot(HaveOccurred())
+			defer testDB.Close()
+
+			Expect(testDB.AddTestBrews("a2ps")).To(Succeed())
+
 			Expect(createTestFile(bf, "brew 'a2ps'")).To(Succeed())
 
 			_ = captureStdout(func() {
-				error := Remove([]string{"a2ps"}, &packages, cache, bf, info, Flags{Brew: true, DryRun: true})
+				error := Remove([]string{"a2ps"}, &packages, cache, bf, info, Flags{Brew: true, DryRun: true}, testDB.DB)
 				Expect(error).ToNot(HaveOccurred())
 			})
 
@@ -67,7 +75,7 @@ var _ = Describe("Remove", func() {
 			Expect(createTestFile(bf, "tap 'some/repo'")).To(Succeed())
 
 			_ = captureStdout(func() {
-				error := Remove([]string{"some/repo"}, &packages, cache, bf, info, Flags{Tap: true})
+				error := Remove([]string{"some/repo"}, &packages, cache, bf, info, Flags{Tap: true}, TestDB{}.DB)
 				Expect(error).ToNot(HaveOccurred())
 			})
 
@@ -82,7 +90,7 @@ var _ = Describe("Remove", func() {
 			Expect(createTestFile(bf, "cask 'firefox'")).To(Succeed())
 
 			_ = captureStdout(func() {
-				error := Remove([]string{"firefox"}, &packages, cache, bf, info, Flags{Cask: true})
+				error := Remove([]string{"firefox"}, &packages, cache, bf, info, Flags{Cask: true}, TestDB{}.DB)
 				Expect(error).ToNot(HaveOccurred())
 			})
 
@@ -97,7 +105,7 @@ var _ = Describe("Remove", func() {
 			Expect(createTestFile(bf, "mas 'Xcode', id: 123456")).To(Succeed())
 
 			_ = captureStdout(func() {
-				error := Remove([]string{"Xcode"}, &packages, cache, bf, info, Flags{Mas: true})
+				error := Remove([]string{"Xcode"}, &packages, cache, bf, info, Flags{Mas: true}, TestDB{}.DB)
 				Expect(error).ToNot(HaveOccurred())
 			})
 
@@ -111,93 +119,72 @@ var _ = Describe("Remove", func() {
 
 	Describe("When the command is called for a brew entry without --required or --all", func() {
 		It("Should remove a the brew entry from the Brewfile", func() {
-			infoContents := `
-[
-	{
-		"name": "a2ps",
-		"full_name": "a2ps",
-		"desc": "Any-to-PostScript filter",
-		"dependencies": ["bash"]
-	},
-	{
-		"name": "bash" ,
-		"full_name": "bash"
-	}
-]`
+			testDB, err := NewTestDB(dbFile)
+			Expect(err).ToNot(HaveOccurred())
+			defer testDB.Close()
+
+			Expect(testDB.AddTestBrews("bash")).To(Succeed())
+			Expect(testDB.AddTestBrewsFromInfo(brew.Info{FullName: "a2ps", Dependencies: []string{"bash"}})).To(Succeed())
+
 			brewfileContents := `
 brew 'a2ps'
 brew 'bash' # required by: a2ps
-`
+	`
 			Expect(createTestFile(bf, brewfileContents)).To(Succeed())
-			Expect(createTestFile(testInfo, infoContents)).To(Succeed())
 
-			packages := &brewfile.Packages{}
-			error := Remove([]string{"a2ps"}, packages, brew.InfoCache{}, bf, testInfo, Flags{Brew: true})
+			error := Remove([]string{"a2ps"}, &packages, brew.InfoCache{}, bf, info, Flags{Brew: true}, testDB.DB)
 			Expect(error).ToNot(HaveOccurred())
 
 			Expect(packages.Brew).To(HaveLen(1))
 			Expect(packages.Brew[0]).To(Equal("brew 'bash'"))
 
 			Expect(removeTestFile(bf)).To(Succeed())
-			Expect(removeTestFile(testInfo)).To(Succeed())
 		})
 	})
 
 	Describe("When the command is called for a brew entry --required", func() {
 		It("Should remove a the brew entry and its required dependencies from the Brewfile", func() {
-			infoContents := `
-[
-	{
-		"name": "a2ps",
-		"full_name": "a2ps",
-		"desc": "Any-to-PostScript filter",
-		"dependencies": ["bash"]
-	},
-	{
-		"name": "bash" ,
-		"full_name": "bash"
-	}
-]`
+			testDB, err := NewTestDB(dbFile)
+			Expect(err).ToNot(HaveOccurred())
+			defer testDB.Close()
+
+			Expect(testDB.AddTestBrews("bash")).To(Succeed())
+			Expect(testDB.AddTestBrewsFromInfo(brew.Info{FullName: "a2ps", Dependencies: []string{"bash"}})).To(Succeed())
+
 			brewfileContents := `
 brew 'a2ps'
 brew 'bash' # required by: a2ps
-`
+	`
 			Expect(createTestFile(bf, brewfileContents)).To(Succeed())
-			Expect(createTestFile(testInfo, infoContents)).To(Succeed())
 
-			packages := &brewfile.Packages{}
-			error := Remove([]string{"a2ps"}, packages, brew.InfoCache{}, bf, testInfo, Flags{Brew: true, RemovePackageAndRequired: true})
+			error := Remove([]string{"a2ps"}, &packages, brew.InfoCache{}, bf, info, Flags{Brew: true, RemovePackageAndRequired: true}, testDB.DB)
 			Expect(error).ToNot(HaveOccurred())
 
 			Expect(packages.Brew).To(HaveLen(0))
 
 			Expect(removeTestFile(bf)).To(Succeed())
-			Expect(removeTestFile(testInfo)).To(Succeed())
 		})
 
 		It("Should not remove required dependencies that are still required by other packages from the Brewfile", func() {
-			infoContents := `
-[
-	{
-		"name": "a2ps",
-		"full_name": "a2ps",
-		"desc": "Any-to-PostScript filter",
-		"dependencies": ["bash"]
-	},
-	{ "name": "bash", "full_name": "bash" },
-	{ "name": "zsh", "full_name": "zsh", "dependencies": ["bash"] }
-]`
+			testDB, err := NewTestDB(dbFile)
+			Expect(err).ToNot(HaveOccurred())
+			defer testDB.Close()
+
+			Expect(testDB.AddTestBrews("bash")).To(Succeed())
+			Expect(testDB.AddTestBrewsFromInfo(
+				brew.Info{FullName: "a2ps", Dependencies: []string{"bash"}},
+				brew.Info{FullName: "zsh", Dependencies: []string{"bash"}},
+			)).To(Succeed())
+
 			brewfileContents := `
 brew 'a2ps'
 brew 'bash' # required by: a2ps, zsh
 brew 'zsh'
-`
+		`
 
 			Expect(createTestFile(bf, brewfileContents)).To(Succeed())
-			Expect(createTestFile(testInfo, infoContents)).To(Succeed())
 
-			packages := &brewfile.Packages{}
-			error := Remove([]string{"a2ps"}, packages, brew.InfoCache{}, bf, testInfo, Flags{Brew: true, RemovePackageAndRequired: true})
+			error := Remove([]string{"a2ps"}, &packages, brew.InfoCache{}, bf, info, Flags{Brew: true, RemovePackageAndRequired: true}, testDB.DB)
 			Expect(error).ToNot(HaveOccurred())
 
 			Expect(packages.Brew).To(HaveLen(2))
@@ -205,28 +192,25 @@ brew 'zsh'
 			Expect(packages.Brew[1]).To(Equal("brew 'zsh'"))
 
 			Expect(removeTestFile(bf)).To(Succeed())
-			Expect(removeTestFile(testInfo)).To(Succeed())
 		})
 	})
 
 	Describe("When the command is called for a brew entry --all", func() {
 		It("Should remove a the brew entry and its required, recommended and build dependencies from the Brewfile", func() {
-			infoContents := `
-[
-	{
-		"name": "a2ps",
-		"full_name": "a2ps",
-		"desc": "Any-to-PostScript filter",
-		"dependencies": ["bash"],
-		"optional_dependencies": ["zsh"],
-		"recommended_dependencies": ["fish"],
-		"build_dependencies": ["sh"]
-	},
-	{ "name": "bash" , "full_name": "bash" },
-	{ "name": "zsh" , "full_name": "zsh" },
-	{ "name": "sh" , "full_name": "sh" },
-	{ "name": "fish" , "full_name": "fish" }
-]`
+			testDB, err := NewTestDB(dbFile)
+			Expect(err).ToNot(HaveOccurred())
+			defer testDB.Close()
+
+			Expect(testDB.AddTestBrews("bash", "zsh", "fish", "sh")).To(Succeed())
+			Expect(testDB.AddTestBrewsFromInfo(
+				brew.Info{
+					FullName:                "a2ps",
+					Dependencies:            []string{"bash"},
+					OptionalDependencies:    []string{"zsh"},
+					RecommendedDependencies: []string{"fish"},
+					BuildDependencies:       []string{"sh"},
+				},
+			)).To(Succeed())
 
 			brewfileContents := `
 brew 'a2ps'
@@ -234,40 +218,37 @@ brew 'bash' # required by: a2ps
 brew 'fish'
 brew 'sh'
 brew 'zsh'
-`
+	`
 
 			Expect(createTestFile(bf, brewfileContents)).To(Succeed())
-			Expect(createTestFile(testInfo, infoContents)).To(Succeed())
 
-			packages := &brewfile.Packages{}
-
-			error := Remove([]string{"a2ps"}, packages, brew.InfoCache{}, bf, testInfo, Flags{Brew: true, RemoveAll: true})
+			error := Remove([]string{"a2ps"}, &packages, brew.InfoCache{}, bf, info, Flags{Brew: true, RemoveAll: true}, testDB.DB)
 			Expect(error).ToNot(HaveOccurred())
 
 			Expect(packages.Brew).To(HaveLen(0))
 
 			Expect(removeTestFile(bf)).To(Succeed())
-			Expect(removeTestFile(testInfo)).To(Succeed())
 		})
 
 		It("Should not remove any dependencies that are still required by other packages from the Brewfile", func() {
-			infoContents := `
-[
-	{
-		"name": "a2ps",
-		"full_name": "a2ps",
-		"desc": "Any-to-PostScript filter",
-		"dependencies": ["bash"],
-		"optional_dependencies": ["zsh"],
-		"recommended_dependencies": ["fish"],
-		"build_dependencies": ["sh"]
-	},
-	{ "name": "bash", "full_name": "bash" },
-	{ "name": "zsh", "full_name": "zsh" },
-	{ "name": "sh", "full_name": "sh" },
-	{ "name": "fish", "full_name": "fish" },
-	{ "name": "vim", "full_name": "vim", "dependencies": ["bash"] }
-]`
+			testDB, err := NewTestDB(dbFile)
+			Expect(err).ToNot(HaveOccurred())
+			defer testDB.Close()
+
+			Expect(testDB.AddTestBrews("bash", "zsh", "fish", "sh")).To(Succeed())
+			Expect(testDB.AddTestBrewsFromInfo(
+				brew.Info{
+					FullName:                "a2ps",
+					Dependencies:            []string{"bash"},
+					OptionalDependencies:    []string{"zsh"},
+					RecommendedDependencies: []string{"fish"},
+					BuildDependencies:       []string{"sh"},
+				},
+				brew.Info{
+					FullName:     "vim",
+					Dependencies: []string{"bash"},
+				},
+			)).To(Succeed())
 
 			brewfileContents := `
 brew 'a2ps'
@@ -276,14 +257,11 @@ brew 'fish'
 brew 'sh'
 brew 'zsh'
 brew 'vim'
-`
+		`
 
 			Expect(createTestFile(bf, brewfileContents)).To(Succeed())
-			Expect(createTestFile(testInfo, infoContents)).To(Succeed())
 
-			packages := &brewfile.Packages{}
-
-			error := Remove([]string{"a2ps"}, packages, brew.InfoCache{}, bf, testInfo, Flags{Brew: true, RemoveAll: true})
+			error := Remove([]string{"a2ps"}, &packages, brew.InfoCache{}, bf, info, Flags{Brew: true, RemoveAll: true}, testDB.DB)
 			Expect(error).ToNot(HaveOccurred())
 
 			Expect(packages.Brew).To(HaveLen(2))
@@ -291,7 +269,6 @@ brew 'vim'
 			Expect(packages.Brew[1]).To(Equal("brew 'vim'"))
 
 			Expect(removeTestFile(bf)).To(Succeed())
-			Expect(removeTestFile(testInfo)).To(Succeed())
 		})
 	})
 })

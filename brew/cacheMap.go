@@ -4,6 +4,8 @@ import (
 	"errors"
 	"regexp"
 	"sort"
+
+	"github.com/boltdb/bolt"
 )
 
 type Map map[string]Entry
@@ -13,7 +15,7 @@ type CacheMap struct {
 	Cache *InfoCache
 }
 
-func (c CacheMap) FromPackages(entries []string) error {
+func (c CacheMap) FromPackages(entries []string, db *bolt.DB) error {
 	quotesRegexp := regexp.MustCompile(`'\S+'`)
 	argsRegexp := regexp.MustCompile(`\[.*\]`)
 	restartRegexp := regexp.MustCompile(`restart_service: (:changed|true)`)
@@ -23,7 +25,7 @@ func (c CacheMap) FromPackages(entries []string) error {
 		match := quotesRegexp.FindString(e)
 		pkg := match[1 : len(match)-1]
 
-		info, err := c.Cache.Find(pkg)
+		info, err := c.Cache.Find(pkg, db)
 		if err != nil {
 			return err
 		}
@@ -45,24 +47,24 @@ func (c CacheMap) FromPackages(entries []string) error {
 			b.RestartService = restartBehaviourRegexp.FindString(restartService)
 		}
 
-		c.Map[info.Name] = b
+		c.Map[info.FullName] = b
 	}
 
 	return nil
 }
 
-func (c CacheMap) ResolveRequiredDependencyMap() {
+func (c CacheMap) ResolveRequiredDependencyMap(db *bolt.DB) {
 	for _, b := range c.Map {
 		if len(b.RequiredDependencies) > 0 {
 			for _, d := range b.RequiredDependencies {
-				c.addRequiredBy(d, b.Name)
+				c.addRequiredBy(d, b.Name, db)
 			}
 		}
 	}
 }
 
-func (c CacheMap) Add(entry Entry, opt int) error {
-	info, err := c.Cache.Find(entry.Name)
+func (c CacheMap) Add(entry Entry, opt int, db *bolt.DB) error {
+	info, err := c.Cache.Find(entry.Name, db)
 	if err != nil {
 		return err
 	}
@@ -74,16 +76,16 @@ func (c CacheMap) Add(entry Entry, opt int) error {
 		c.Map[entry.Name] = entry
 
 		for _, dep := range entry.RequiredDependencies {
-			c.addRequiredBy(dep, entry.Name)
+			c.addRequiredBy(dep, entry.Name, db)
 		}
 		for _, dep := range entry.RecommendedDependencies {
-			c.Add(Entry{Name: dep}, opt)
+			c.Add(Entry{Name: dep}, opt, db)
 		}
 		for _, dep := range entry.OptionalDependencies {
-			c.Add(Entry{Name: dep}, opt)
+			c.Add(Entry{Name: dep}, opt, db)
 		}
 		for _, dep := range entry.BuildDependencies {
-			c.Add(Entry{Name: dep}, opt)
+			c.Add(Entry{Name: dep}, opt, db)
 		}
 	case AddPackageOnly:
 		c.Map[entry.Name] = entry
@@ -91,7 +93,7 @@ func (c CacheMap) Add(entry Entry, opt int) error {
 		c.Map[entry.Name] = entry
 
 		for _, dep := range entry.RequiredDependencies {
-			c.addRequiredBy(dep, entry.Name)
+			c.addRequiredBy(dep, entry.Name, db)
 		}
 	}
 
@@ -154,32 +156,32 @@ func (c CacheMap) Remove(name string, opt int) error {
 	return nil
 }
 
-func (c CacheMap) addRequiredBy(req, by string) error {
-	var b Entry
+func (c CacheMap) addRequiredBy(req, by string, db *bolt.DB) error {
+	var e Entry
 
 	if _, present := c.Map[req]; !present {
-		info, err := c.Cache.Find(req)
+		info, err := c.Cache.Find(req, db)
 		if err != nil {
 			return err
 		}
 
-		b = Entry{}
-		b.FromInfo(info)
+		e = Entry{}
+		e.FromInfo(info)
 	} else {
-		b = c.Map[req]
+		e = c.Map[req]
 	}
 
-	if !contains(b.RequiredBy, by) {
-		b.RequiredBy = append(b.RequiredBy, by)
+	if !contains(e.RequiredBy, by) {
+		e.RequiredBy = append(e.RequiredBy, by)
 	}
 
-	sort.Strings(b.RequiredBy)
+	sort.Strings(e.RequiredBy)
 
-	c.Map[b.Name] = b
+	c.Map[e.Name] = e
 
-	if len(b.RequiredDependencies) > 0 {
-		for _, d := range b.RequiredDependencies {
-			c.addRequiredBy(d, b.Name)
+	if len(e.RequiredDependencies) > 0 {
+		for _, d := range e.RequiredDependencies {
+			c.addRequiredBy(d, e.Name, db)
 		}
 	}
 

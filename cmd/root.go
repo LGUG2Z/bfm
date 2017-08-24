@@ -47,6 +47,7 @@ func Execute() {
 var (
 	brewfilePath string
 	brewInfoPath string
+	boltFilePath string
 )
 
 func init() {
@@ -74,6 +75,7 @@ func initConfig() {
 		viper.AutomaticEnv() // read in environment variables that match
 		brewfilePath = viper.GetString("brewfile")
 		brewInfoPath = fmt.Sprintf("%s/%s", home, ".brewInfo.json")
+		boltFilePath = fmt.Sprintf("%s/%s", home, ".bfm.bolt")
 	}
 
 	// If a config file is found, read it in.

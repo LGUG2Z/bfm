@@ -23,6 +23,7 @@ import (
 
 	"io/ioutil"
 
+	"github.com/boltdb/bolt"
 	"github.com/lgug2z/bfm/brew"
 	"github.com/lgug2z/bfm/brewfile"
 	"github.com/spf13/cobra"
@@ -85,12 +86,18 @@ bfm add -m Xcode -i 497799835
 	Run: func(cmd *cobra.Command, args []string) {
 		var cache brew.InfoCache
 		var packages brewfile.Packages
-		error := Add(args, &packages, cache, brewfilePath, brewInfoPath, addFlags)
-		errorExit(error)
+
+		db, err := bolt.Open(boltFilePath, 0600, nil)
+		if err != nil {
+			errorExit(err)
+		}
+
+		err = Add(args, &packages, cache, brewfilePath, brewInfoPath, addFlags, db)
+		errorExit(err)
 	},
 }
 
-func Add(args []string, packages *brewfile.Packages, cache brew.InfoCache, brewfilePath, brewInfoPath string, flags Flags) error {
+func Add(args []string, packages *brewfile.Packages, cache brew.InfoCache, brewfilePath, brewInfoPath string, flags Flags, db *bolt.DB) error {
 	if !flagProvided(flags) {
 		return ErrNoPackageType("add")
 	}
@@ -111,8 +118,8 @@ func Add(args []string, packages *brewfile.Packages, cache brew.InfoCache, brewf
 	}
 
 	cacheMap := brew.CacheMap{Cache: &cache, Map: make(brew.Map)}
-	cacheMap.FromPackages(packages.Brew)
-	cacheMap.ResolveRequiredDependencyMap()
+	cacheMap.FromPackages(packages.Brew, db)
+	cacheMap.ResolveRequiredDependencyMap(db)
 
 	if flags.Tap {
 		if !hasCorrectTapFormat(toAdd) {
@@ -123,7 +130,7 @@ func Add(args []string, packages *brewfile.Packages, cache brew.InfoCache, brewf
 	}
 
 	if flags.Brew {
-		updated, error := addBrewPackage(toAdd, flags.RestartService, flags.Args, cacheMap, flags)
+		updated, error := addBrewPackage(toAdd, flags.RestartService, flags.Args, cacheMap, flags, db)
 		if error != nil {
 			return error
 		}
@@ -156,7 +163,7 @@ func Add(args []string, packages *brewfile.Packages, cache brew.InfoCache, brewf
 	return nil
 }
 
-func addBrewPackage(add, restart string, args []string, cacheMap brew.CacheMap, flags Flags) ([]string, error) {
+func addBrewPackage(add, restart string, args []string, cacheMap brew.CacheMap, flags Flags, db *bolt.DB) ([]string, error) {
 	if len(restart) > 1 {
 		switch restart {
 		case "always":
@@ -169,15 +176,15 @@ func addBrewPackage(add, restart string, args []string, cacheMap brew.CacheMap, 
 	}
 
 	if flags.AddAll {
-		if err := cacheMap.Add(brew.Entry{Name: add, RestartService: restart, Args: args}, brew.AddAll); err != nil {
+		if err := cacheMap.Add(brew.Entry{Name: add, RestartService: restart, Args: args}, brew.AddAll, db); err != nil {
 			return []string{}, err
 		}
 	} else if flags.AddPackageAndRequired {
-		if err := cacheMap.Add(brew.Entry{Name: add, RestartService: restart, Args: args}, brew.AddPackageAndRequired); err != nil {
+		if err := cacheMap.Add(brew.Entry{Name: add, RestartService: restart, Args: args}, brew.AddPackageAndRequired, db); err != nil {
 			return []string{}, err
 		}
 	} else {
-		if err := cacheMap.Add(brew.Entry{Name: add, RestartService: restart, Args: args}, brew.AddPackageOnly); err != nil {
+		if err := cacheMap.Add(brew.Entry{Name: add, RestartService: restart, Args: args}, brew.AddPackageOnly, db); err != nil {
 			return []string{}, err
 		}
 	}
