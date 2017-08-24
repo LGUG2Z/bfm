@@ -21,7 +21,7 @@ Once installed, add `export BFM_BREWFILE=/path/to/your/Brewfile` to your `.bashr
 
 ## Usage
 
-The main commands of bfm are `add`, `remove`, `check` and `clean`.
+The main commands of bfm are `refresh` `add`, `remove`, `check` and `clean`.
 
 `add`, `remove` and `clean` are destructive commmands that will permanently modify your Brewfile without creating a backup.
 

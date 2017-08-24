@@ -4,9 +4,9 @@ const (
 	DocsAdd = `
 Adds the dependency given as an argument to the Brewfile.
 
-This command will modify your Brewfile without creating
-a backup. Consider running the command with the --dry-run
-flag if using bfm for the first time.
+This command will modify your Brewfile without creating a
+backup. Consider running the command with the --dry-run flag
+if using bfm for the first time.
 
 The type must be specified using the appropriate flag.
 
@@ -14,9 +14,9 @@ Taps must conform to the format <user/repo>.
 
 Brew packages can have arguments specified using the --arg
 flag (multiple arguments can be separated by using a comma),
-and can specify service restart behaviour ('always' to restart
-every time bundle is run, 'changed' to restart only when updated
-or changed) with the --restart-service flag.
+and can specify service restart behaviour ('always' to
+restart every time bundle is run, 'changed' to restart only
+when updated or changed) with the --restart-service flag.
 
 The --required flag will add a brew entry and its required
 dependencies.
@@ -38,8 +38,8 @@ bfm add -m Xcode -i 497799835
 `
 	// TODO: Update this depending on whether templating will be included
 	DocsCheck = `
-Checks for the presence of the argument as an entry
-in the Brewfile.
+Checks for the presence of the argument as an entry in the
+Brewfile.
 
 The type must be specified using the appropriate flag.
 
@@ -52,13 +52,13 @@ bfm check -m Xcode
 
 `
 	DocsClean = `
-Cleans up your Brewfile, removing all comments and
-sorting all dependencies into alphabetised groups
-with the order tap -> brew -> cask -> mas.
+Cleans up your Brewfile, removing all comments and sorting
+all dependencies into alphabetised groups with the order tap
+-> brew -> cask -> mas.
 
-This command will modify your Brewfile without creating
-a backup. Consider running the command with the --dry-run
-flag if using bfm for the first time.
+This command will modify your Brewfile without creating a
+backup. Consider running the command with the --dry-run flag
+if using bfm for the first time.
 
 Examples:
 
@@ -70,9 +70,9 @@ bfm clean --dry-run
 Refreshes the bfm cache stored at ''$HOME/.bfm.bolt'.
 
 This command will get information about all brews and casks
-it is possible for you to install given the repositories that
-you have tapped, and store it in a Bolt DB file in the home
-folder.
+it is possible for you to install given the repositories
+that you have tapped, and store it in a Bolt DB file in the
+home folder.
 
 This command should be run after adding a new tap.
 
@@ -82,22 +82,24 @@ bfm refresh
 
 `
 	DocsRemove = `
-Removes from the Brewfile the entry corresponding to the argument.
+Removes from the Brewfile the entry corresponding to the
+argument.
 
-This command will modify your Brewfile without creating a backup.
-Consider running the command with the --dry-run  flag if using
-bfm for the first time.
+This command will modify your Brewfile without creating a
+backup.  Consider running the command with the --dry-run
+flag if using bfm for the first time.
 
-The default behaviour is to remove only the entry corresponding
-to the given argument.
+The default behaviour is to remove only the entry
+corresponding to the given argument.
 
-The --required flag will remove a brew entry along with all of
-the required dependencies of that entry which are no longer
-required by any other brew entry.
+The --required flag will remove a brew entry along with all
+of the required dependencies of that entry which are no
+longer required by any other brew entry.
 
-The --all flag will remove a brew entry along with all of the
-required, recommended, optional and build dependencies of that
-entry which are no longer required by any other brew entry.
+The --all flag will remove a brew entry along with all of
+the required, recommended, optional and build dependencies
+of that entry which are no longer required by any other brew
+entry.
 
 The type must be specified using the appropriate flag.
 
