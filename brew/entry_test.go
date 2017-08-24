@@ -39,7 +39,6 @@ var _ = Describe("Entry", func() {
 	})
 
 	It("Determines all the dependencies of an Entry from its Info", func() {
-
 		expected := Entry{
 			Name:                    "a",
 			RequiredDependencies:    []string{"b"},
@@ -87,5 +86,4 @@ var _ = Describe("Entry", func() {
 			Expect(actual).To(Equal(expected))
 		})
 	})
-
 })

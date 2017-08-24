@@ -26,23 +26,26 @@ var _ = Describe("Map", func() {
 			Info{FullName: "go"},
 			Info{FullName: "node"},
 		}
+		db *TestDB
 	)
-
 	BeforeEach(func() {
+		testDB, err := NewTestDB(dbFile)
+		db = testDB
+		Expect(err).ToNot(HaveOccurred())
+		cache.DB = db.DB
 		cacheMap = CacheMap{
 			Cache: &cache,
 			Map:   make(Map),
 		}
 	})
 
+	AfterEach(func() {
+		db.Close()
+	})
+
 	Describe("Initialising with a list of package names", func() {
 		It("Should create an entry in the map for every package which has info in the cache", func() {
-			testDB, err := NewTestDB(dbFile)
-			Expect(err).ToNot(HaveOccurred())
-			defer testDB.Close()
-			cache.DB = testDB.DB
-
-			Expect(testDB.AddTestBrews("vim", "emacs")).To(Succeed())
+			Expect(db.AddTestBrews("vim", "emacs")).To(Succeed())
 			packages := []string{"brew 'vim'", "brew 'emacs'"}
 
 			cacheMap.FromPackages(packages)
@@ -54,12 +57,7 @@ var _ = Describe("Map", func() {
 		})
 
 		It("Should not create entries in the map for packages which have no info in the cache", func() {
-			testDB, err := NewTestDB(dbFile)
-			Expect(err).ToNot(HaveOccurred())
-			defer testDB.Close()
-			cache.DB = testDB.DB
-
-			Expect(testDB.AddTestBrews("vim")).To(Succeed())
+			Expect(db.AddTestBrews("vim")).To(Succeed())
 			packages := []string{"brew 'vim'", "brew 'emacs'"}
 			cacheMap.FromPackages(packages)
 
@@ -71,12 +69,7 @@ var _ = Describe("Map", func() {
 
 	Describe("Populated with packages and with a Cache", func() {
 		It("Should update all entries in the map with whichever other packages that entry is required by", func() {
-			testDB, err := NewTestDB(dbFile)
-			Expect(err).ToNot(HaveOccurred())
-			defer testDB.Close()
-			cache.DB = testDB.DB
-
-			Expect(testDB.AddTestBrewsFromInfo(
+			Expect(db.AddTestBrewsFromInfo(
 				Info{FullName: "vim", Dependencies: []string{"python"}},
 				Info{FullName: "python"},
 			)).To(Succeed())
@@ -92,12 +85,7 @@ var _ = Describe("Map", func() {
 
 	Describe("With a functioning bolt db", func() {
 		It("Should add a new package without any of its dependencies", func() {
-			testDB, err := NewTestDB(dbFile)
-			Expect(err).ToNot(HaveOccurred())
-			defer testDB.Close()
-			cache.DB = testDB.DB
-
-			Expect(testDB.AddTestBrewsFromInfo(infoWithDependencies...)).To(Succeed())
+			Expect(db.AddTestBrewsFromInfo(infoWithDependencies...)).To(Succeed())
 
 			cacheMap.Add(Entry{Name: "vim", RestartService: "true", Args: []string{"with-override-system-vim"}}, AddPackageOnly)
 
@@ -109,12 +97,7 @@ var _ = Describe("Map", func() {
 		})
 
 		It("Should add a new package with its required dependencies", func() {
-			testDB, err := NewTestDB(dbFile)
-			Expect(err).ToNot(HaveOccurred())
-			defer testDB.Close()
-			cache.DB = testDB.DB
-
-			Expect(testDB.AddTestBrewsFromInfo(infoWithDependencies...)).To(Succeed())
+			Expect(db.AddTestBrewsFromInfo(infoWithDependencies...)).To(Succeed())
 
 			cacheMap.Add(Entry{Name: "vim", RestartService: "true", Args: []string{"with-override-system-vim"}}, AddPackageAndRequired)
 
@@ -130,12 +113,7 @@ var _ = Describe("Map", func() {
 		})
 
 		It("Should add a new package with all of its required, recommended, optional and build dependencies", func() {
-			testDB, err := NewTestDB(dbFile)
-			Expect(err).ToNot(HaveOccurred())
-			defer testDB.Close()
-			cache.DB = testDB.DB
-
-			Expect(testDB.AddTestBrewsFromInfo(infoWithDependencies...)).To(Succeed())
+			Expect(db.AddTestBrewsFromInfo(infoWithDependencies...)).To(Succeed())
 
 			cacheMap.Add(Entry{Name: "vim", RestartService: "true", Args: []string{"with-override-system-vim"}}, AddAll)
 
@@ -148,12 +126,7 @@ var _ = Describe("Map", func() {
 
 	Describe("Initialised with a Cache and populated with packages", func() {
 		It("Should remove a package without removing any of its dependencies", func() {
-			testDB, err := NewTestDB(dbFile)
-			Expect(err).ToNot(HaveOccurred())
-			defer testDB.Close()
-			cache.DB = testDB.DB
-
-			Expect(testDB.AddTestBrewsFromInfo(infoWithDependencies...)).To(Succeed())
+			Expect(db.AddTestBrewsFromInfo(infoWithDependencies...)).To(Succeed())
 
 			cacheMap.Add(Entry{Name: "vim", RestartService: "true", Args: []string{"with-override-system-vim"}}, AddAll)
 			cacheMap.Remove("vim", RemovePackageOnly)
@@ -170,12 +143,7 @@ var _ = Describe("Map", func() {
 		})
 
 		It("Should remove a package and its required dependencies if they are not required by other packages", func() {
-			testDB, err := NewTestDB(dbFile)
-			Expect(err).ToNot(HaveOccurred())
-			defer testDB.Close()
-			cache.DB = testDB.DB
-
-			Expect(testDB.AddTestBrewsFromInfo(infoWithDependencies...)).To(Succeed())
+			Expect(db.AddTestBrewsFromInfo(infoWithDependencies...)).To(Succeed())
 
 			cacheMap.Add(Entry{Name: "vim", RestartService: "true", Args: []string{"with-override-system-vim"}}, AddAll)
 			cacheMap.Remove("vim", RemovePackageAndRequired)
@@ -192,12 +160,7 @@ var _ = Describe("Map", func() {
 		})
 
 		It("Should remove a package and all of its required, recommended, build and optional dependencies if they are not required by other packages", func() {
-			testDB, err := NewTestDB(dbFile)
-			Expect(err).ToNot(HaveOccurred())
-			defer testDB.Close()
-			cache.DB = testDB.DB
-
-			Expect(testDB.AddTestBrewsFromInfo(infoWithDependencies...)).To(Succeed())
+			Expect(db.AddTestBrewsFromInfo(infoWithDependencies...)).To(Succeed())
 
 			cacheMap.Add(Entry{Name: "vim", RestartService: "true", Args: []string{"with-override-system-vim"}}, AddAll)
 			cacheMap.Remove("vim", RemoveAll)
