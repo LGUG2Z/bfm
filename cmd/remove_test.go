@@ -15,15 +15,23 @@ import (
 
 var _ = Describe("Remove", func() {
 
-	var bf = fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "/src/github.com/lgug2z/bfm/testData/testBrewfile")
-	var dbFile = fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "src/github.com/lgug2z/bfm/testData/testDB.bolt")
-
-	var cache brew.Cache
-	var packages brewfile.Packages
+	var (
+		bf       = fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "/src/github.com/lgug2z/bfm/testData/testBrewfile")
+		dbFile   = fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "src/github.com/lgug2z/bfm/testData/testDB.bolt")
+		cache    brew.Cache
+		packages brewfile.Packages
+		db       *TestDB
+	)
 
 	BeforeEach(func() {
-		cache = cache
-		packages = brewfile.Packages{}
+		testDB, err := NewTestDB(dbFile)
+		db = testDB
+		Expect(err).ToNot(HaveOccurred())
+		cache.DB = db.DB
+	})
+
+	AfterEach(func() {
+		db.Close()
 	})
 
 	Describe("When the command is called without any flags", func() {
@@ -51,12 +59,7 @@ var _ = Describe("Remove", func() {
 		})
 
 		It("Should not modify the Brewfile if the --dry-run flag is set", func() {
-			testDB, err := NewTestDB(dbFile)
-			Expect(err).ToNot(HaveOccurred())
-			defer testDB.Close()
-			cache.DB = testDB.DB
-
-			Expect(testDB.AddTestBrewsByName("a2ps")).To(Succeed())
+			Expect(db.AddTestBrewsByName("a2ps")).To(Succeed())
 
 			t := TestFile{Path: bf, Contents: "brew 'a2ps'"}
 			Expect(t.Create()).To(Succeed())
@@ -124,21 +127,16 @@ var _ = Describe("Remove", func() {
 
 	Describe("When the command is called for a brew entry without --required or --all", func() {
 		It("Should remove a the brew entry from the Brewfile", func() {
-			testDB, err := NewTestDB(dbFile)
-			Expect(err).ToNot(HaveOccurred())
-			defer testDB.Close()
+			Expect(db.AddTestBrewsByName("bash")).To(Succeed())
+			Expect(db.AddTestBrewsFromInfo(brew.Info{FullName: "a2ps", Dependencies: []string{"bash"}})).To(Succeed())
 
-			Expect(testDB.AddTestBrewsByName("bash")).To(Succeed())
-			Expect(testDB.AddTestBrewsFromInfo(brew.Info{FullName: "a2ps", Dependencies: []string{"bash"}})).To(Succeed())
-
-			brewfileContents := `
+			contents := `
 brew 'a2ps'
 brew 'bash' # required by: a2ps
 	`
-			t := TestFile{Path: bf, Contents: brewfileContents}
+			t := TestFile{Path: bf, Contents: contents}
 			Expect(t.Create()).To(Succeed())
 			defer t.Remove()
-			cache.DB = testDB.DB
 
 			error := Remove([]string{"a2ps"}, &packages, cache, bf, Flags{Brew: true})
 			Expect(error).ToNot(HaveOccurred())
@@ -151,19 +149,14 @@ brew 'bash' # required by: a2ps
 
 	Describe("When the command is called for a brew entry --required", func() {
 		It("Should remove a the brew entry and its required dependencies from the Brewfile", func() {
-			testDB, err := NewTestDB(dbFile)
-			Expect(err).ToNot(HaveOccurred())
-			defer testDB.Close()
-			cache.DB = testDB.DB
+			Expect(db.AddTestBrewsByName("bash")).To(Succeed())
+			Expect(db.AddTestBrewsFromInfo(brew.Info{FullName: "a2ps", Dependencies: []string{"bash"}})).To(Succeed())
 
-			Expect(testDB.AddTestBrewsByName("bash")).To(Succeed())
-			Expect(testDB.AddTestBrewsFromInfo(brew.Info{FullName: "a2ps", Dependencies: []string{"bash"}})).To(Succeed())
-
-			brewfileContents := `
+			contents := `
 brew 'a2ps'
 brew 'bash' # required by: a2ps
 	`
-			t := TestFile{Path: bf, Contents: brewfileContents}
+			t := TestFile{Path: bf, Contents: contents}
 			Expect(t.Create()).To(Succeed())
 			defer t.Remove()
 
@@ -175,24 +168,19 @@ brew 'bash' # required by: a2ps
 		})
 
 		It("Should not remove required dependencies that are still required by other packages from the Brewfile", func() {
-			testDB, err := NewTestDB(dbFile)
-			Expect(err).ToNot(HaveOccurred())
-			defer testDB.Close()
-			cache.DB = testDB.DB
-
-			Expect(testDB.AddTestBrewsByName("bash")).To(Succeed())
-			Expect(testDB.AddTestBrewsFromInfo(
+			Expect(db.AddTestBrewsByName("bash")).To(Succeed())
+			Expect(db.AddTestBrewsFromInfo(
 				brew.Info{FullName: "a2ps", Dependencies: []string{"bash"}},
 				brew.Info{FullName: "zsh", Dependencies: []string{"bash"}},
 			)).To(Succeed())
 
-			brewfileContents := `
+			contents := `
 brew 'a2ps'
 brew 'bash' # required by: a2ps, zsh
 brew 'zsh'
 		`
 
-			t := TestFile{Path: bf, Contents: brewfileContents}
+			t := TestFile{Path: bf, Contents: contents}
 			Expect(t.Create()).To(Succeed())
 			defer t.Remove()
 
@@ -208,13 +196,8 @@ brew 'zsh'
 
 	Describe("When the command is called for a brew entry --all", func() {
 		It("Should remove a the brew entry and its required, recommended and build dependencies from the Brewfile", func() {
-			testDB, err := NewTestDB(dbFile)
-			Expect(err).ToNot(HaveOccurred())
-			defer testDB.Close()
-			cache.DB = testDB.DB
-
-			Expect(testDB.AddTestBrewsByName("bash", "zsh", "fish", "sh")).To(Succeed())
-			Expect(testDB.AddTestBrewsFromInfo(
+			Expect(db.AddTestBrewsByName("bash", "zsh", "fish", "sh")).To(Succeed())
+			Expect(db.AddTestBrewsFromInfo(
 				brew.Info{
 					FullName:                "a2ps",
 					Dependencies:            []string{"bash"},
@@ -224,7 +207,7 @@ brew 'zsh'
 				},
 			)).To(Succeed())
 
-			brewfileContents := `
+			contents := `
 brew 'a2ps'
 brew 'bash' # required by: a2ps
 brew 'fish'
@@ -232,7 +215,7 @@ brew 'sh'
 brew 'zsh'
 	`
 
-			t := TestFile{Path: bf, Contents: brewfileContents}
+			t := TestFile{Path: bf, Contents: contents}
 			Expect(t.Create()).To(Succeed())
 			defer t.Remove()
 
@@ -244,13 +227,8 @@ brew 'zsh'
 		})
 
 		It("Should not remove any dependencies that are still required by other packages from the Brewfile", func() {
-			testDB, err := NewTestDB(dbFile)
-			Expect(err).ToNot(HaveOccurred())
-			defer testDB.Close()
-			cache.DB = testDB.DB
-
-			Expect(testDB.AddTestBrewsByName("bash", "zsh", "fish", "sh")).To(Succeed())
-			Expect(testDB.AddTestBrewsFromInfo(
+			Expect(db.AddTestBrewsByName("bash", "zsh", "fish", "sh")).To(Succeed())
+			Expect(db.AddTestBrewsFromInfo(
 				brew.Info{
 					FullName:                "a2ps",
 					Dependencies:            []string{"bash"},
@@ -264,7 +242,7 @@ brew 'zsh'
 				},
 			)).To(Succeed())
 
-			brewfileContents := `
+			contents := `
 brew 'a2ps'
 brew 'bash' # required by: a2ps, vim
 brew 'fish'
@@ -273,10 +251,9 @@ brew 'zsh'
 brew 'vim'
 		`
 
-			t := TestFile{Path: bf, Contents: brewfileContents}
+			t := TestFile{Path: bf, Contents: contents}
 			Expect(t.Create()).To(Succeed())
 			defer t.Remove()
-			cache.DB = testDB.DB
 
 			error := Remove([]string{"a2ps"}, &packages, cache, bf, Flags{Brew: true, RemoveAll: true})
 			Expect(error).ToNot(HaveOccurred())

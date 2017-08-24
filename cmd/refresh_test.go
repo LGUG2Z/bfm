@@ -21,24 +21,24 @@ var _ = Describe("Refresh", func() {
 			command := exec.Command("echo", `[ { "name": "a2ps", "full_name": "a2ps" } ]`)
 			dbFile := fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "src/github.com/lgug2z/bfm/testData/testDB.bolt")
 
-			testDB, err := NewTestDB(dbFile)
+			db, err := NewTestDB(dbFile)
 			Expect(err).ToNot(HaveOccurred())
-			defer testDB.Close()
-			cache := brew.Cache{DB: testDB.DB}
+			defer db.Close()
+			cache := brew.Cache{DB: db.DB}
 
-			Refresh([]string{}, cache, command)
+			Expect(Refresh([]string{}, cache, command)).To(Succeed())
 
-			var v []byte
-			err = testDB.View(func(tx *bolt.Tx) error {
+			var info brew.Info
+			err = db.View(func(tx *bolt.Tx) error {
 				b := tx.Bucket([]byte("brew"))
-				v = b.Get([]byte("a2ps"))
+				v := b.Get([]byte("a2ps"))
+
+				Expect(v).ToNot(BeNil())
+				Expect(json.Unmarshal(v, &info)).To(Succeed())
 				return nil
 			})
 
-			Expect(v).ToNot(BeNil())
-
-			var info brew.Info
-			Expect(json.Unmarshal(v, &info)).To(Succeed())
+			Expect(err).To(BeNil())
 
 			Expect(info).To(Equal(brew.Info{Name: "a2ps", FullName: "a2ps"}))
 		})
