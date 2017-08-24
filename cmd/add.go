@@ -53,8 +53,8 @@ func init() {
 var addCmd = &cobra.Command{
 	Use:   "add",
 	Short: "Add a dependency to your Brewfile",
-	Long: DocsAdd,
-	Args: cobra.ExactArgs(1),
+	Long:  DocsAdd,
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		var packages brewfile.Packages
 

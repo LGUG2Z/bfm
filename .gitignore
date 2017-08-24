@@ -116,3 +116,4 @@ Temporary Items
 brew/brew.coverprofile
 brewfile/brewfile.coverprofile
 cmd/cmd.coverprofile
+testData/

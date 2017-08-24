@@ -14,12 +14,8 @@ import (
 var _ = Describe("Packages", func() {
 	Describe("When given a path to a Brewfile", func() {
 		var (
-			packages           Packages
-			bf, info, contents string
-		)
-
-		BeforeEach(func() {
-			bf = fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "/src/github.com/lgug2z/bfm/testData/testBrewfile")
+			packages Packages
+			bf       = fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "/src/github.com/lgug2z/bfm/testData/testBrewfile")
 			contents = `
 tap 'homebrew/bundle'
 brew 'a2ps'
@@ -29,8 +25,10 @@ mas 'Xcode', id: 497799835
 cask 'firefox'
 # some comment
 `
+		)
+
+		BeforeEach(func() {
 			ioutil.WriteFile(bf, []byte(contents), 0644)
-			info = fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "/src/github.com/lgug2z/bfm/testData/test.json")
 		})
 
 		AfterEach(func() {
@@ -51,7 +49,7 @@ cask 'firefox'
 		})
 	})
 
-	Describe("When popualted with packages", func() {
+	Describe("When populated with packages", func() {
 		It("Produces a byte representation of the contents to be written to disk", func() {
 
 			packages := Packages{

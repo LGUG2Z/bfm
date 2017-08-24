@@ -48,8 +48,8 @@ func init() {
 var removeCmd = &cobra.Command{
 	Use:   "remove",
 	Short: "Remove a dependency from your Brewfile",
-	Long: DocsRemove,
-	Args: cobra.ExactArgs(1),
+	Long:  DocsRemove,
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		var packages brewfile.Packages
 
