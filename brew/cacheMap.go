@@ -23,7 +23,7 @@ func (c CacheMap) FromPackages(packages []string) error {
 		match := quotesRegexp.FindString(p)
 		pkg := match[1 : len(match)-1]
 
-		info, err := c.Cache.Find(pkg, c.Cache.DB)
+		info, err := c.Cache.Find(pkg)
 		if err != nil {
 			return err
 		}
@@ -65,7 +65,7 @@ func (c CacheMap) ResolveRequiredDependencyMap() error {
 }
 
 func (c CacheMap) Add(entry Entry, opt int) error {
-	info, err := c.Cache.Find(entry.Name, c.Cache.DB)
+	info, err := c.Cache.Find(entry.Name)
 	if err != nil {
 		return err
 	}
@@ -161,7 +161,7 @@ func (c CacheMap) addRequiredBy(req, by string) error {
 	var e Entry
 
 	if _, present := c.Map[req]; !present {
-		info, err := c.Cache.Find(req, c.Cache.DB)
+		info, err := c.Cache.Find(req)
 		if err != nil {
 			return err
 		}

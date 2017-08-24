@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os/exec"
 
+	"strings"
+
 	"github.com/boltdb/bolt"
 )
 
@@ -12,12 +14,47 @@ type Cache struct {
 	DB *bolt.DB
 }
 
-func (c *Cache) Refresh(command *exec.Cmd) error {
+// TODO: Figure out a consistent naming convention for casks
+func (c *Cache) RefreshCasks(command *exec.Cmd) error {
 	b, err := command.Output()
 	if err != nil {
 		return err
 	}
 
+	err = c.DB.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte("cask"))
+		if err != nil {
+			return fmt.Errorf("create bucket: %s", err)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	allCasks := strings.Fields(string(b))
+
+	for _, cask := range allCasks {
+		err := c.DB.Update(func(tx *bolt.Tx) error {
+			b := tx.Bucket([]byte("cask"))
+			if err := b.Put([]byte(cask), []byte(cask)); err != nil {
+				return err
+			}
+
+			return nil
+		})
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (c *Cache) Refresh(command *exec.Cmd) error {
+	b, err := command.Output()
 	if err != nil {
 		return err
 	}
@@ -65,10 +102,33 @@ func (c *Cache) Refresh(command *exec.Cmd) error {
 	return nil
 }
 
-func (c Cache) Find(pkg string, db *bolt.DB) (Info, error) {
+func (c Cache) FindCask(pkg string) (string, error) {
+	var cask string
+
+	err := c.DB.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("cask"))
+		v := b.Get([]byte(pkg))
+
+		if v == nil {
+			return ErrCouldNotFindPackageInfo(pkg)
+		}
+
+		cask = string(v)
+
+		return nil
+	})
+
+	if err != nil {
+		return "", err
+	}
+
+	return cask, nil
+}
+
+func (c Cache) Find(pkg string) (Info, error) {
 	var info Info
 
-	err := db.View(func(tx *bolt.Tx) error {
+	err := c.DB.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("brew"))
 		v := b.Get([]byte(pkg))
 

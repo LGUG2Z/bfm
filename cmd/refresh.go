@@ -13,7 +13,8 @@ var refreshCmd = &cobra.Command{
 	Short: "Refresh the cache of Homebrew formula information",
 	Long:  DocsRefresh,
 	Run: func(cmd *cobra.Command, args []string) {
-		infoCommand := exec.Command("brew", "info", "--all", "--json=v1")
+		brewInfo := exec.Command("brew", "info", "--all", "--json=v1")
+		caskInfo := exec.Command("brew", "cask", "search")
 
 		db, err := bolt.Open(boltPath, 0600, nil)
 		if err != nil {
@@ -23,7 +24,7 @@ var refreshCmd = &cobra.Command{
 
 		cache := brew.Cache{DB: db}
 
-		err = Refresh(args, cache, infoCommand)
+		err = Refresh(args, cache, brewInfo, caskInfo)
 		errorExit(err)
 	},
 }
@@ -32,8 +33,12 @@ func init() {
 	RootCmd.AddCommand(refreshCmd)
 }
 
-func Refresh(args []string, cache brew.Cache, command *exec.Cmd) error {
-	if err := cache.Refresh(command); err != nil {
+func Refresh(args []string, cache brew.Cache, brewCommand, caskCommand *exec.Cmd) error {
+	if err := cache.Refresh(brewCommand); err != nil {
+		return err
+	}
+
+	if err := cache.RefreshCasks(caskCommand); err != nil {
 		return err
 	}
 
