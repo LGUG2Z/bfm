@@ -33,7 +33,13 @@ var RootCmd = &cobra.Command{
 Brewfile Manager (bfm) is a command line tool that allows
 you to add or remove taps, brew packages, casks and mas apps
 to or from your Brewfile without having to edit it by hand.`,
-}
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		if _, err := os.Stat(boltPath); os.IsNotExist(err) {
+			fmt.Printf("Cache not found. Building...")
+			refreshCmd.Run(refreshCmd, []string{""})
+			fmt.Printf(" Done.\n\n")
+		}
+	}}
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
