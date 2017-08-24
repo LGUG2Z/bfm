@@ -16,7 +16,6 @@ import (
 var _ = Describe("Remove", func() {
 
 	var bf = fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "/src/github.com/lgug2z/bfm/testData/testBrewfile")
-	var info = fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "/src/github.com/lgug2z/bfm/testData/test.json")
 	var dbFile = fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "src/github.com/lgug2z/bfm/testData/testDB.bolt")
 
 	var cache brew.InfoCache
@@ -29,10 +28,10 @@ var _ = Describe("Remove", func() {
 
 	Describe("When the command is called without any flags", func() {
 		It("Should return an error with info about required flags for specifying package types", func() {
-			error := Remove([]string{"something"}, &brewfile.Packages{}, brew.InfoCache{}, "", "", Flags{}, TestDB{}.DB)
-			Expect(error).To(HaveOccurred())
+			err := Remove([]string{"something"}, &brewfile.Packages{}, brew.InfoCache{}, "", Flags{}, TestDB{}.DB)
+			Expect(err).To(HaveOccurred())
 
-			errorMessage := error.Error()
+			errorMessage := err.Error()
 			Expect(errorMessage).To(Equal(ErrNoPackageType("remove").Error()))
 		})
 	})
@@ -41,7 +40,7 @@ var _ = Describe("Remove", func() {
 		It("Should return an error with an explanation if the package is not in the Brewfile", func() {
 			Expect(createTestFile(bf, "")).To(Succeed())
 
-			error := Remove([]string{"a2ps"}, &packages, cache, bf, info, Flags{Brew: true}, TestDB{}.DB)
+			error := Remove([]string{"a2ps"}, &packages, cache, bf, Flags{Brew: true}, TestDB{}.DB)
 			Expect(error).To(HaveOccurred())
 
 			errorMessage := error.Error()
@@ -60,7 +59,7 @@ var _ = Describe("Remove", func() {
 			Expect(createTestFile(bf, "brew 'a2ps'")).To(Succeed())
 
 			_ = captureStdout(func() {
-				error := Remove([]string{"a2ps"}, &packages, cache, bf, info, Flags{Brew: true, DryRun: true}, testDB.DB)
+				error := Remove([]string{"a2ps"}, &packages, cache, bf, Flags{Brew: true, DryRun: true}, testDB.DB)
 				Expect(error).ToNot(HaveOccurred())
 			})
 
@@ -75,7 +74,7 @@ var _ = Describe("Remove", func() {
 			Expect(createTestFile(bf, "tap 'some/repo'")).To(Succeed())
 
 			_ = captureStdout(func() {
-				error := Remove([]string{"some/repo"}, &packages, cache, bf, info, Flags{Tap: true}, TestDB{}.DB)
+				error := Remove([]string{"some/repo"}, &packages, cache, bf, Flags{Tap: true}, TestDB{}.DB)
 				Expect(error).ToNot(HaveOccurred())
 			})
 
@@ -90,7 +89,7 @@ var _ = Describe("Remove", func() {
 			Expect(createTestFile(bf, "cask 'firefox'")).To(Succeed())
 
 			_ = captureStdout(func() {
-				error := Remove([]string{"firefox"}, &packages, cache, bf, info, Flags{Cask: true}, TestDB{}.DB)
+				error := Remove([]string{"firefox"}, &packages, cache, bf, Flags{Cask: true}, TestDB{}.DB)
 				Expect(error).ToNot(HaveOccurred())
 			})
 
@@ -105,7 +104,7 @@ var _ = Describe("Remove", func() {
 			Expect(createTestFile(bf, "mas 'Xcode', id: 123456")).To(Succeed())
 
 			_ = captureStdout(func() {
-				error := Remove([]string{"Xcode"}, &packages, cache, bf, info, Flags{Mas: true}, TestDB{}.DB)
+				error := Remove([]string{"Xcode"}, &packages, cache, bf, Flags{Mas: true}, TestDB{}.DB)
 				Expect(error).ToNot(HaveOccurred())
 			})
 
@@ -132,7 +131,7 @@ brew 'bash' # required by: a2ps
 	`
 			Expect(createTestFile(bf, brewfileContents)).To(Succeed())
 
-			error := Remove([]string{"a2ps"}, &packages, brew.InfoCache{}, bf, info, Flags{Brew: true}, testDB.DB)
+			error := Remove([]string{"a2ps"}, &packages, brew.InfoCache{}, bf, Flags{Brew: true}, testDB.DB)
 			Expect(error).ToNot(HaveOccurred())
 
 			Expect(packages.Brew).To(HaveLen(1))
@@ -157,7 +156,7 @@ brew 'bash' # required by: a2ps
 	`
 			Expect(createTestFile(bf, brewfileContents)).To(Succeed())
 
-			error := Remove([]string{"a2ps"}, &packages, brew.InfoCache{}, bf, info, Flags{Brew: true, RemovePackageAndRequired: true}, testDB.DB)
+			error := Remove([]string{"a2ps"}, &packages, brew.InfoCache{}, bf, Flags{Brew: true, RemovePackageAndRequired: true}, testDB.DB)
 			Expect(error).ToNot(HaveOccurred())
 
 			Expect(packages.Brew).To(HaveLen(0))
@@ -184,7 +183,7 @@ brew 'zsh'
 
 			Expect(createTestFile(bf, brewfileContents)).To(Succeed())
 
-			error := Remove([]string{"a2ps"}, &packages, brew.InfoCache{}, bf, info, Flags{Brew: true, RemovePackageAndRequired: true}, testDB.DB)
+			error := Remove([]string{"a2ps"}, &packages, brew.InfoCache{}, bf, Flags{Brew: true, RemovePackageAndRequired: true}, testDB.DB)
 			Expect(error).ToNot(HaveOccurred())
 
 			Expect(packages.Brew).To(HaveLen(2))
@@ -222,7 +221,7 @@ brew 'zsh'
 
 			Expect(createTestFile(bf, brewfileContents)).To(Succeed())
 
-			error := Remove([]string{"a2ps"}, &packages, brew.InfoCache{}, bf, info, Flags{Brew: true, RemoveAll: true}, testDB.DB)
+			error := Remove([]string{"a2ps"}, &packages, brew.InfoCache{}, bf, Flags{Brew: true, RemoveAll: true}, testDB.DB)
 			Expect(error).ToNot(HaveOccurred())
 
 			Expect(packages.Brew).To(HaveLen(0))
@@ -261,7 +260,7 @@ brew 'vim'
 
 			Expect(createTestFile(bf, brewfileContents)).To(Succeed())
 
-			error := Remove([]string{"a2ps"}, &packages, brew.InfoCache{}, bf, info, Flags{Brew: true, RemoveAll: true}, testDB.DB)
+			error := Remove([]string{"a2ps"}, &packages, brew.InfoCache{}, bf, Flags{Brew: true, RemoveAll: true}, testDB.DB)
 			Expect(error).ToNot(HaveOccurred())
 
 			Expect(packages.Brew).To(HaveLen(2))

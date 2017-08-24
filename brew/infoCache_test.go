@@ -62,9 +62,9 @@ var _ = Describe("InfoCache", func() {
 			Expect(testDB.AddTestBrews("vim")).To(Succeed())
 
 			expected := Info{FullName: "vim"}
-			actual, error := cache.Find("vim", testDB.DB)
+			actual, err := cache.Find("vim", testDB.DB)
 
-			Expect(error).To(BeNil())
+			Expect(err).To(BeNil())
 			Expect(actual).To(Equal(expected))
 		})
 
@@ -75,9 +75,9 @@ var _ = Describe("InfoCache", func() {
 
 			Expect(testDB.AddTestBrews("vim")).To(Succeed())
 
-			_, error := cache.Find("notvim", testDB.DB)
+			_, err = cache.Find("notvim", testDB.DB)
 
-			Expect(error).ToNot(BeNil())
+			Expect(err).ToNot(BeNil())
 		})
 	})
 })

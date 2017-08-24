@@ -70,17 +70,17 @@ bfm remove -m Xcode
 		var packages brewfile.Packages
 		var cache brew.InfoCache
 
-		db, err := bolt.Open(boltFilePath, 0600, nil)
+		db, err := bolt.Open(boltPath, 0600, nil)
 		if err != nil {
 			errorExit(err)
 		}
 
-		error := Remove(args, &packages, cache, brewfilePath, brewInfoPath, removeFlags, db)
+		error := Remove(args, &packages, cache, brewfilePath, removeFlags, db)
 		errorExit(error)
 	},
 }
 
-func Remove(args []string, packages *brewfile.Packages, cache brew.InfoCache, brewfilePath, brewInfoPath string, flags Flags, db *bolt.DB) error {
+func Remove(args []string, packages *brewfile.Packages, cache brew.InfoCache, brewfilePath string, flags Flags, db *bolt.DB) error {
 	if !flagProvided(flags) {
 		return ErrNoPackageType("remove")
 	}
@@ -88,17 +88,17 @@ func Remove(args []string, packages *brewfile.Packages, cache brew.InfoCache, br
 	toRemove := args[0]
 	packageType := getPackageType(flags)
 
-	if error := packages.FromBrewfile(brewfilePath); error != nil {
-		return error
+	if err := packages.FromBrewfile(brewfilePath); err != nil {
+		return err
 	}
 
 	if !entryExists(string(packages.Bytes()), packageType, toRemove) {
 		return ErrEntryDoesNotExist(toRemove)
 	}
 
-	if error := cache.Read(brewInfoPath); error != nil {
-		return error
-	}
+	//if error := cache.Read(brewInfoPath); error != nil {
+	//	return error
+	//}
 
 	cacheMap := brew.CacheMap{Cache: &cache, Map: make(brew.Map)}
 	cacheMap.FromPackages(packages.Brew, db)
@@ -110,9 +110,9 @@ func Remove(args []string, packages *brewfile.Packages, cache brew.InfoCache, br
 	}
 
 	if flags.Brew {
-		updated, error := removeBrewPackage(toRemove, cacheMap, flags)
-		if error != nil {
-			return error
+		updated, err := removeBrewPackage(toRemove, cacheMap, flags)
+		if err != nil {
+			return err
 		}
 		packages.Brew = updated
 	}
@@ -130,8 +130,8 @@ func Remove(args []string, packages *brewfile.Packages, cache brew.InfoCache, br
 	if flags.DryRun {
 		fmt.Println(string(packages.Bytes()))
 	} else {
-		if error := ioutil.WriteFile(brewfilePath, packages.Bytes(), 0644); error != nil {
-			return error
+		if err := ioutil.WriteFile(brewfilePath, packages.Bytes(), 0644); err != nil {
+			return err
 		}
 	}
 

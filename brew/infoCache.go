@@ -3,12 +3,11 @@ package brew
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"os"
 	"os/exec"
 
-	"github.com/boltdb/bolt"
 	"errors"
+
+	"github.com/boltdb/bolt"
 )
 
 type Info struct {
@@ -134,29 +133,6 @@ func (i *InfoCache) Refresh(db *bolt.DB, command *exec.Cmd) error {
 		if err != nil {
 			return err
 		}
-	}
-
-	// TODO: Deprecate this
-	//if error := ioutil.WriteFile(file, b, 0644); error != nil {
-	//	return error
-	//}
-
-	return nil
-}
-
-// TODO Deprecate this
-func (i *InfoCache) Read(file string) error {
-	if _, err := os.Stat(file); os.IsNotExist(err) {
-		//i.Refresh(db, exec.Command("brew", "info", "--all", "--json=v1"))
-	}
-
-	b, err := ioutil.ReadFile(file)
-	if err != nil {
-		return err
-	}
-
-	if err := json.Unmarshal(b, &i); err != nil {
-		return err
 	}
 
 	return nil

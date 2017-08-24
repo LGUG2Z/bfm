@@ -87,17 +87,17 @@ bfm add -m Xcode -i 497799835
 		var cache brew.InfoCache
 		var packages brewfile.Packages
 
-		db, err := bolt.Open(boltFilePath, 0600, nil)
+		db, err := bolt.Open(boltPath, 0600, nil)
 		if err != nil {
 			errorExit(err)
 		}
 
-		err = Add(args, &packages, cache, brewfilePath, brewInfoPath, addFlags, db)
+		err = Add(args, &packages, cache, brewfilePath, addFlags, db)
 		errorExit(err)
 	},
 }
 
-func Add(args []string, packages *brewfile.Packages, cache brew.InfoCache, brewfilePath, brewInfoPath string, flags Flags, db *bolt.DB) error {
+func Add(args []string, packages *brewfile.Packages, cache brew.InfoCache, brewfilePath string, flags Flags, db *bolt.DB) error {
 	if !flagProvided(flags) {
 		return ErrNoPackageType("add")
 	}
@@ -105,16 +105,12 @@ func Add(args []string, packages *brewfile.Packages, cache brew.InfoCache, brewf
 	toAdd := args[0]
 	packageType := getPackageType(flags)
 
-	if error := packages.FromBrewfile(brewfilePath); error != nil {
-		return error
+	if err := packages.FromBrewfile(brewfilePath); err != nil {
+		return err
 	}
 
 	if entryExists(string(packages.Bytes()), packageType, toAdd) {
 		return ErrEntryAlreadyExists(toAdd)
-	}
-
-	if error := cache.Read(brewInfoPath); error != nil {
-		return error
 	}
 
 	cacheMap := brew.CacheMap{Cache: &cache, Map: make(brew.Map)}
@@ -130,9 +126,9 @@ func Add(args []string, packages *brewfile.Packages, cache brew.InfoCache, brewf
 	}
 
 	if flags.Brew {
-		updated, error := addBrewPackage(toAdd, flags.RestartService, flags.Args, cacheMap, flags, db)
-		if error != nil {
-			return error
+		updated, err := addBrewPackage(toAdd, flags.RestartService, flags.Args, cacheMap, flags, db)
+		if err != nil {
+			return err
 		}
 		packages.Brew = updated
 	}
@@ -154,8 +150,8 @@ func Add(args []string, packages *brewfile.Packages, cache brew.InfoCache, brewf
 	if flags.DryRun {
 		fmt.Println(string(packages.Bytes()))
 	} else {
-		if error := ioutil.WriteFile(brewfilePath, packages.Bytes(), 0644); error != nil {
-			return error
+		if err := ioutil.WriteFile(brewfilePath, packages.Bytes(), 0644); err != nil {
+			return err
 		}
 
 	}

@@ -16,7 +16,6 @@ import (
 var _ = Describe("Clean", func() {
 	var (
 		bf       = fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "src/github.com/lgug2z/bfm/testData/testBrewfile")
-		info     = fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "src/github.com/lgug2z/bfm/testData/test.json")
 		dbFile   = fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "src/github.com/lgug2z/bfm/testData/testDB.bolt")
 		cache    brew.InfoCache
 		packages brewfile.Packages
@@ -48,7 +47,7 @@ cask 'firefox'
 				Mas:  []string{"mas 'Xcode', id: 497799835"},
 			}
 
-			Clean([]string{}, &packages, cache, bf, info, Flags{DryRun: false}, testDB.DB)
+			Clean([]string{}, &packages, cache, bf, Flags{DryRun: false}, testDB.DB)
 
 			Expect(packages).To(Equal(expectedPackages))
 			Expect(removeTestFile(bf)).To(Succeed())
@@ -73,7 +72,7 @@ mas 'Xcode', id: 497799835`
 
 			Expect(createTestFile(bf, contents)).To(Succeed())
 
-			Clean([]string{}, &packages, cache, bf, info, Flags{DryRun: false}, testDB.DB)
+			Clean([]string{}, &packages, cache, bf, Flags{DryRun: false}, testDB.DB)
 
 			bytes, error := ioutil.ReadFile(bf)
 			Expect(error).To(BeNil())
@@ -92,7 +91,7 @@ mas 'Xcode', id: 497799835`
 			Expect(createTestFile(bf, contents)).To(Succeed())
 
 			_ = captureStdout(func() {
-				Clean([]string{}, &packages, cache, bf, info, Flags{DryRun: true}, testDB.DB)
+				Clean([]string{}, &packages, cache, bf, Flags{DryRun: true}, testDB.DB)
 			})
 
 			bytes, error := ioutil.ReadFile(bf)
@@ -123,7 +122,7 @@ mas 'Xcode', id: 497799835
 `
 
 			output := captureStdout(func() {
-				Clean([]string{}, &packages, cache, bf, info, Flags{DryRun: true}, testDB.DB)
+				Clean([]string{}, &packages, cache, bf, Flags{DryRun: true}, testDB.DB)
 			})
 
 			Expect(output).To(Equal(expectedOutput))

@@ -60,22 +60,20 @@ flag if using bfm for the first time.
 		var cache brew.InfoCache
 		var packages brewfile.Packages
 
-		db, err := bolt.Open(boltFilePath, 0600, nil)
+		db, err := bolt.Open(boltPath, 0600, nil)
 		if err != nil {
 			errorExit(err)
 		}
 
-		err = Clean(args, &packages, cache, brewfilePath, brewInfoPath, cleanFlags, db)
+		err = Clean(args, &packages, cache, brewfilePath, cleanFlags, db)
 		errorExit(err)
 	},
 }
 
-func Clean(args []string, packages *brewfile.Packages, cache brew.InfoCache, brewfilePath, brewInfoPath string, flags Flags, db *bolt.DB) error {
-	err := packages.FromBrewfile(brewfilePath)
-	errorExit(err)
-
-	err = cache.Read(brewInfoPath)
-	errorExit(err)
+func Clean(args []string, packages *brewfile.Packages, cache brew.InfoCache, brewfilePath string, flags Flags, db *bolt.DB) error {
+	if err := packages.FromBrewfile(brewfilePath); err != nil {
+		return err
+	}
 
 	cacheMap := brew.CacheMap{Cache: &cache, Map: make(brew.Map)}
 	cacheMap.FromPackages(packages.Brew, db)

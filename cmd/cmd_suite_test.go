@@ -128,18 +128,18 @@ func (db *TestDB) AddTestBrewsFromInfo(info ...brew.Info) error {
 }
 
 func createTestFile(file, contents string) error {
-	error := ioutil.WriteFile(file, []byte(contents), 0644)
-	if error != nil {
-		return error
+	err := ioutil.WriteFile(file, []byte(contents), 0644)
+	if err != nil {
+		return err
 	}
 
 	return nil
 }
 
 func removeTestFile(file string) error {
-	error := os.Remove(file)
-	if error != nil {
-		return error
+	err := os.Remove(file)
+	if err != nil {
+		return err
 	}
 
 	return nil

@@ -8,6 +8,7 @@ import (
 	"os/exec"
 
 	"encoding/json"
+
 	"github.com/boltdb/bolt"
 	"github.com/lgug2z/bfm/brew"
 	. "github.com/onsi/ginkgo"

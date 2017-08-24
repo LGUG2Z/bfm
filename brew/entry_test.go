@@ -64,8 +64,8 @@ var _ = Describe("Entry", func() {
 			expected := `brew 'vim'`
 			entry := Entry{Name: "vim"}
 
-			actual, error := entry.Format()
-			Expect(error).To(BeNil())
+			actual, err := entry.Format()
+			Expect(err).To(BeNil())
 
 			Expect(actual).To(Equal(expected))
 		})
@@ -74,8 +74,8 @@ var _ = Describe("Entry", func() {
 			expected := `brew 'vim', args: ['HEAD'], restart_service: :changed`
 			entry := Entry{Name: "vim", RestartService: ":changed", Args: []string{"HEAD"}}
 
-			actual, error := entry.Format()
-			Expect(error).To(BeNil())
+			actual, err := entry.Format()
+			Expect(err).To(BeNil())
 
 			Expect(actual).To(Equal(expected))
 		})
@@ -84,8 +84,8 @@ var _ = Describe("Entry", func() {
 			expected := `brew 'vim' # required by: developers`
 			entry := Entry{Name: "vim", RequiredBy: []string{"developers"}}
 
-			actual, error := entry.Format()
-			Expect(error).To(BeNil())
+			actual, err := entry.Format()
+			Expect(err).To(BeNil())
 
 			Expect(actual).To(Equal(expected))
 		})

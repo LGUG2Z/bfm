@@ -16,7 +16,7 @@ var refreshCmd = &cobra.Command{
 		var cache brew.InfoCache
 		infoCommand := exec.Command("brew", "info", "--all", "--json=v1")
 
-		db, err := bolt.Open(boltFilePath, 0600, nil)
+		db, err := bolt.Open(boltPath, 0600, nil)
 		if err != nil {
 			errorExit(err)
 		}
