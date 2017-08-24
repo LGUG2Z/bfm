@@ -114,3 +114,5 @@ Temporary Items
 
 ### Project Specific ###
 brew/brew.coverprofile
+brewfile/brewfile.coverprofile
+cmd/cmd.coverprofile
