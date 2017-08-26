@@ -5,6 +5,8 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+
+	"github.com/lgug2z/bfm/brewfile"
 )
 
 func errorExit(err error) {
@@ -12,15 +14,6 @@ func errorExit(err error) {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-}
-
-func readFileContents(location string) (string, error) {
-	bytes, err := ioutil.ReadFile(location)
-	if err != nil {
-		return "", err
-	}
-
-	return string(bytes), nil
 }
 
 func flagProvided(flags Flags) bool {
@@ -72,30 +65,15 @@ func getPackages(packageType string, lines []string) []string {
 	return packages
 }
 
-//func constructFileContents(tap, brew, cask, mas []string) string {
-//	lines := []string{}
-//
-//	for _, line := range tap {
-//		lines = append(lines, line)
-//	}
-//
-//	lines = append(lines, "")
-//
-//	for _, line := range brew {
-//		lines = append(lines, line)
-//	}
-//
-//	lines = append(lines, "")
-//
-//	for _, line := range cask {
-//		lines = append(lines, line)
-//	}
-//
-//	lines = append(lines, "")
-//
-//	for _, line := range mas {
-//		lines = append(lines, line)
-//	}
-//
-//	return strings.Join(lines, "\n")
-//}
+func writeToFile(path string, packages *brewfile.Packages) error {
+	b, err := packages.Bytes()
+	if err != nil {
+		return err
+	}
+
+	if err := ioutil.WriteFile(path, b, 0644); err != nil {
+		return err
+	}
+
+	return nil
+}

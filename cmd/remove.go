@@ -20,8 +20,6 @@ import (
 	"sort"
 	"strings"
 
-	"io/ioutil"
-
 	"github.com/boltdb/bolt"
 	"github.com/lgug2z/bfm/brew"
 	"github.com/lgug2z/bfm/brewfile"
@@ -76,7 +74,12 @@ func Remove(args []string, packages *brewfile.Packages, cache brew.Cache, brewfi
 		return err
 	}
 
-	if !entryExists(string(packages.Bytes()), packageType, toRemove) {
+	b, err := packages.Bytes()
+	if err != nil {
+		return err
+	}
+
+	if !entryExists(string(b), packageType, toRemove) {
 		return ErrEntryDoesNotExist(toRemove)
 	}
 
@@ -114,9 +117,13 @@ func Remove(args []string, packages *brewfile.Packages, cache brew.Cache, brewfi
 	}
 
 	if flags.DryRun {
-		fmt.Println(string(packages.Bytes()))
+		b, err := packages.Bytes()
+		if err != nil {
+			return err
+		}
+		fmt.Printf(string(b))
 	} else {
-		if err := ioutil.WriteFile(brewfilePath, packages.Bytes(), 0644); err != nil {
+		if err := writeToFile(brewfilePath, packages); err != nil {
 			return err
 		}
 	}

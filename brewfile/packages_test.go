@@ -59,7 +59,8 @@ cask 'firefox'
 				Mas:  []string{"mas 'Xcode', id: 497799835"},
 			}
 
-			actual := packages.Bytes()
+			actual, err := packages.Bytes()
+			Expect(err).ToNot(HaveOccurred())
 			expected := []byte(`tap 'homebrew/bundle'
 tap 'homebrew/core'
 
@@ -68,7 +69,8 @@ brew 'a2ps'
 cask 'firefox'
 cask 'google-chrome'
 
-mas 'Xcode', id: 497799835`)
+mas 'Xcode', id: 497799835
+`)
 			Expect(actual).To(Equal(expected))
 		})
 	})

@@ -122,7 +122,7 @@ cask 'firefox'
 
 			bytes, error := ioutil.ReadFile(bf)
 			Expect(error).ToNot(HaveOccurred())
-			Expect(bytes).To(Equal([]byte("mas 'Xcode', id: 123456")))
+			Expect(bytes).To(Equal([]byte("mas 'Xcode', id: 123456\n")))
 
 		})
 	})

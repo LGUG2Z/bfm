@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"os"
 
+	"io/ioutil"
+
 	"github.com/lgug2z/bfm/brew"
 	"github.com/lgug2z/bfm/brewfile"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"io/ioutil"
 )
 
 var _ = Describe("Remove", func() {

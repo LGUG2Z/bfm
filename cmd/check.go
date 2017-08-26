@@ -17,13 +17,15 @@ package cmd
 import (
 	"fmt"
 
+	"strings"
+	"text/template"
+
 	"bytes"
+
 	"github.com/boltdb/bolt"
 	"github.com/lgug2z/bfm/brew"
 	"github.com/lgug2z/bfm/brewfile"
 	"github.com/spf13/cobra"
-	"strings"
-	"text/template"
 )
 
 var checkFlags Flags
@@ -80,7 +82,12 @@ func Check(args []string, packages *brewfile.Packages, cache brew.Cache, brewfil
 		return err
 	}
 
-	if entryExists(string(packages.Bytes()), packageType, toCheck) {
+	b, err := packages.Bytes()
+	if err != nil {
+		return err
+	}
+
+	if entryExists(string(b), packageType, toCheck) {
 		switch packageType {
 		case "brew":
 
@@ -126,50 +133,6 @@ Build dependency of: {{ StringsJoin .BuildOf ", " }}
 {{- else }}
 Not a required, recommended, optional or build dependency of any other package.
 {{- end -}}`
-
-			//			source := `
-			//{{ .Name }} is present in the Brewfile.
-			//{{- if (or .RequiredDependencies .RecommendedDependencies .OptionalDependencies .BuildDependencies) }}
-			//
-			//{{- if .RequiredDependencies }}
-			//Required dependencies: {{ StringsJoin .RequiredDependencies ", " }}
-			//{{- end -}}
-			//
-			//{{- if .RecommendedDependencies }}
-			//
-			//Recommended dependencies: {{ StringsJoin .RecommendedDependencies ", " }}
-			//{{- end -}}
-			//
-			//{{- if .OptionalDependencies }}
-			//Optional dependencies: {{ StringsJoin .OptionalDependencies ", " }}
-			//{{- end -}}
-			//
-			//{{- if .BuildDependencies }}
-			//Build Dependencies: {{ StringsJoin .BuildDependencies ", " }}
-			//{{- end -}}
-			//{{ else }}
-			//
-			//No required, recommended, optional or build dependencies.
-			//{{- end -}}
-			//
-			//{{- if or .RequiredBy .RecommendedFor .OptionalFor .BuildOf }}
-			//{{ end -}}
-			//
-			//{{- if .RequiredBy }}
-			//Required dependency of: {{ StringsJoin .RequiredBy ", " }}
-			//{{- end -}}
-			//
-			//{{- if .RecommendedFor }}
-			//Recommended dependency of: {{ StringsJoin .RecommendedFor ", " }}
-			//{{- end -}}
-			//
-			//{{- if .OptionalFor }}
-			//Optional dependency of: {{ StringsJoin .OptionalFor ", " }}
-			//{{- end -}}
-			//
-			//{{- if .BuildOf }}
-			//Build dependency of: {{ StringsJoin .BuildOf ", " }}
-			//{{- end -}}`
 
 			brew := cacheMap.Map[toCheck]
 

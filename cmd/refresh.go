@@ -1,10 +1,11 @@
 package cmd
 
 import (
+	"os/exec"
+
 	"github.com/boltdb/bolt"
 	"github.com/lgug2z/bfm/brew"
 	"github.com/spf13/cobra"
-	"os/exec"
 )
 
 // refreshCmd represents the refresh command

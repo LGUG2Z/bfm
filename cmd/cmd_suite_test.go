@@ -7,12 +7,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/boltdb/bolt"
-	"github.com/lgug2z/bfm/brew"
 	"io"
 	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/boltdb/bolt"
+	"github.com/lgug2z/bfm/brew"
 )
 
 func TestCmd(t *testing.T) {

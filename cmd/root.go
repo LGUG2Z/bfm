@@ -18,11 +18,12 @@ import (
 	"fmt"
 	"os"
 
+	"strings"
+
 	"github.com/lgug2z/bfm/brew"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"strings"
 )
 
 var cfgFile string

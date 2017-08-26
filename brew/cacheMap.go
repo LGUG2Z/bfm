@@ -4,6 +4,8 @@ import (
 	"errors"
 	"regexp"
 	"sort"
+
+	. "github.com/lgug2z/bfm/helpers"
 )
 
 type Map map[string]Entry
@@ -226,7 +228,7 @@ func (c CacheMap) addDependency(req, by string, dependencyType int) error {
 
 	switch dependencyType {
 	case RequiredDependency:
-		if !contains(e.RequiredBy, by) {
+		if !Contains(e.RequiredBy, by) {
 			e.RequiredBy = append(e.RequiredBy, by)
 			sort.Strings(e.RequiredBy)
 		}
@@ -241,7 +243,7 @@ func (c CacheMap) addDependency(req, by string, dependencyType int) error {
 			}
 		}
 	case RecommendedDependency:
-		if !contains(e.RecommendedFor, by) {
+		if !Contains(e.RecommendedFor, by) {
 			e.RecommendedFor = append(e.RecommendedFor, by)
 			sort.Strings(e.RecommendedFor)
 		}
@@ -256,7 +258,7 @@ func (c CacheMap) addDependency(req, by string, dependencyType int) error {
 			}
 		}
 	case OptionalDependency:
-		if !contains(e.OptionalFor, by) {
+		if !Contains(e.OptionalFor, by) {
 			e.OptionalFor = append(e.OptionalFor, by)
 			sort.Strings(e.OptionalFor)
 		}
@@ -271,7 +273,7 @@ func (c CacheMap) addDependency(req, by string, dependencyType int) error {
 			}
 		}
 	case BuildDependency:
-		if !contains(e.BuildOf, by) {
+		if !Contains(e.BuildOf, by) {
 			e.BuildOf = append(e.BuildOf, by)
 			sort.Strings(e.BuildOf)
 		}
@@ -295,23 +297,23 @@ func (c CacheMap) removeDependency(req, by string, dependencyType int) {
 
 	switch dependencyType {
 	case RequiredDependency:
-		if contains(b.RequiredBy, by) {
-			b.RequiredBy = remove(b.RequiredBy, by)
+		if Contains(b.RequiredBy, by) {
+			b.RequiredBy = Remove(b.RequiredBy, by)
 			sort.Strings(b.RequiredBy)
 		}
 	case RecommendedDependency:
-		if contains(b.RecommendedFor, by) {
-			b.RecommendedFor = remove(b.RecommendedFor, by)
+		if Contains(b.RecommendedFor, by) {
+			b.RecommendedFor = Remove(b.RecommendedFor, by)
 			sort.Strings(b.RecommendedFor)
 		}
 	case OptionalDependency:
-		if contains(b.OptionalFor, by) {
-			b.OptionalFor = remove(b.OptionalFor, by)
+		if Contains(b.OptionalFor, by) {
+			b.OptionalFor = Remove(b.OptionalFor, by)
 			sort.Strings(b.OptionalFor)
 		}
 	case BuildDependency:
-		if contains(b.BuildOf, by) {
-			b.BuildOf = remove(b.BuildOf, by)
+		if Contains(b.BuildOf, by) {
+			b.BuildOf = Remove(b.BuildOf, by)
 			sort.Strings(b.BuildOf)
 		}
 	}

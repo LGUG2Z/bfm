@@ -1,9 +1,11 @@
 package brewfile
 
 import (
+	"bytes"
 	"io/ioutil"
 	"sort"
 	"strings"
+	"text/template"
 )
 
 type Packages struct {
@@ -31,43 +33,65 @@ func (p *Packages) FromBrewfile(brewfilePath string) error {
 	return nil
 }
 
-func (p *Packages) Bytes() []byte {
-	lines := []string{}
+func (p *Packages) Bytes() ([]byte, error) {
+	entries := `{{ range . }}
+{{- . }}
+{{ end -}}`
 
-	var tapLen, brewLen, caskLen int
-
-	for _, line := range p.Tap {
-		lines = append(lines, line)
-		tapLen++
+	var primaryBrews []string
+	var dependentBrews []string
+	for _, b := range p.Brew {
+		if strings.Contains(b, "#") {
+			dependentBrews = append(dependentBrews, b)
+		} else {
+			primaryBrews = append(primaryBrews, b)
+		}
 	}
 
-	if tapLen > 0 {
-		lines = append(lines, "")
+	var tapBuffer, primaryBuffer, dependentBuffer, caskBuffer, masBuffer bytes.Buffer
+
+	tmpl := template.Must(template.New("entries").Parse(entries))
+	if err := tmpl.Execute(&tapBuffer, p.Tap); err != nil {
+		return []byte{}, err
 	}
 
-	for _, line := range p.Brew {
-		lines = append(lines, line)
-		brewLen++
+	if err := tmpl.Execute(&primaryBuffer, primaryBrews); err != nil {
+		return []byte{}, err
 	}
 
-	if brewLen > 0 {
-		lines = append(lines, "")
+	if err := tmpl.Execute(&dependentBuffer, dependentBrews); err != nil {
+		return []byte{}, err
 	}
 
-	for _, line := range p.Cask {
-		lines = append(lines, line)
-		caskLen++
+	if err := tmpl.Execute(&caskBuffer, p.Cask); err != nil {
+		return []byte{}, err
 	}
 
-	if caskLen > 0 {
-		lines = append(lines, "")
+	if err := tmpl.Execute(&masBuffer, p.Mas); err != nil {
+		return []byte{}, err
 	}
 
-	for _, line := range p.Mas {
-		lines = append(lines, line)
+	var lines []string
+	if len(tapBuffer.String()) > 0 {
+		lines = append(lines, tapBuffer.String())
 	}
 
-	return []byte(strings.Join(lines, "\n"))
+	if len(primaryBuffer.String()) > 0 {
+		lines = append(lines, primaryBuffer.String())
+	}
+	if len(dependentBuffer.String()) > 0 {
+		lines = append(lines, dependentBuffer.String())
+	}
+
+	if len(caskBuffer.String()) > 0 {
+		lines = append(lines, caskBuffer.String())
+	}
+
+	if len(masBuffer.String()) > 0 {
+		lines = append(lines, masBuffer.String())
+	}
+
+	return []byte(strings.Join(lines, "\n")), nil
 }
 
 func separate(packageType string, lines []string) []string {

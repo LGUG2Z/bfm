@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"strings"
 	"text/template"
+
+	. "github.com/lgug2z/bfm/helpers"
 )
 
 type Entry struct {
@@ -31,17 +33,17 @@ func (e *Entry) DetermineDependencies(i Info) {
 	}
 
 	for _, optional := range i.OptionalDependencies {
-		e.RequiredDependencies = remove(e.RequiredDependencies, optional)
+		e.RequiredDependencies = Remove(e.RequiredDependencies, optional)
 		e.OptionalDependencies = append(e.OptionalDependencies, optional)
 	}
 
 	for _, build := range i.BuildDependencies {
-		e.RequiredDependencies = remove(e.RequiredDependencies, build)
+		e.RequiredDependencies = Remove(e.RequiredDependencies, build)
 		e.BuildDependencies = append(e.BuildDependencies, build)
 	}
 
 	for _, recommended := range i.RecommendedDependencies {
-		e.RequiredDependencies = remove(e.RequiredDependencies, recommended)
+		e.RequiredDependencies = Remove(e.RequiredDependencies, recommended)
 		e.RecommendedDependencies = append(e.RecommendedDependencies, recommended)
 	}
 }

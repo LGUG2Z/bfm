@@ -21,8 +21,6 @@ import (
 
 	"regexp"
 
-	"io/ioutil"
-
 	"github.com/boltdb/bolt"
 	"github.com/lgug2z/bfm/brew"
 	"github.com/lgug2z/bfm/brewfile"
@@ -79,7 +77,12 @@ func Add(args []string, packages *brewfile.Packages, cache brew.Cache, brewfileP
 		return err
 	}
 
-	if entryExists(string(packages.Bytes()), packageType, toAdd) {
+	b, err := packages.Bytes()
+	if err != nil {
+		return err
+	}
+
+	if entryExists(string(b), packageType, toAdd) {
 		return ErrEntryAlreadyExists(toAdd)
 	}
 
@@ -124,12 +127,15 @@ func Add(args []string, packages *brewfile.Packages, cache brew.Cache, brewfileP
 	}
 
 	if flags.DryRun {
-		fmt.Println(string(packages.Bytes()))
-	} else {
-		if err := ioutil.WriteFile(brewfilePath, packages.Bytes(), 0644); err != nil {
+		b, err := packages.Bytes()
+		if err != nil {
 			return err
 		}
-
+		fmt.Printf(string(b))
+	} else {
+		if err := writeToFile(brewfilePath, packages); err != nil {
+			return err
+		}
 	}
 
 	return nil

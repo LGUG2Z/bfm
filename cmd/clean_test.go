@@ -79,7 +79,8 @@ brew 'a2ps'
 cask 'firefox'
 cask 'google-chrome'
 
-mas 'Xcode', id: 497799835`
+mas 'Xcode', id: 497799835
+`
 
 			db.AddTestBrewsByName("a2ps")
 

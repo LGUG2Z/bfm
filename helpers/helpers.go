@@ -1,6 +1,6 @@
-package brew
+package helpers
 
-func contains(s []string, e string) bool {
+func Contains(s []string, e string) bool {
 	for _, a := range s {
 		if a == e {
 			return true
@@ -9,7 +9,7 @@ func contains(s []string, e string) bool {
 	return false
 }
 
-func remove(s []string, r string) []string {
+func Remove(s []string, r string) []string {
 	for i, v := range s {
 		if v == r {
 			return append(s[:i], s[i+1:]...)
