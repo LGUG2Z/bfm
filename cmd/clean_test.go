@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"os"
 
+	"io/ioutil"
+
 	"github.com/lgug2z/bfm/brew"
 	"github.com/lgug2z/bfm/brewfile"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"io/ioutil"
 )
 
 var _ = Describe("Clean", func() {
@@ -58,13 +59,13 @@ cask 'firefox'
 				Mas:  []string{"mas 'Xcode', id: 497799835"},
 			}
 
-			Expect(Clean([]string{}, &packages, cache, bf, Flags{DryRun: false})).To(Succeed())
+			Expect(Clean([]string{}, &packages, cache, bf, Flags{DryRun: false}, 0)).To(Succeed())
 
 			Expect(packages).To(Equal(expectedPackages))
 		})
 
 		It("Should not proceed if a package in the Brewfile is not in the BoltDB cache", func() {
-			err := Clean([]string{}, &packages, cache, bf, Flags{DryRun: false})
+			err := Clean([]string{}, &packages, cache, bf, Flags{DryRun: false}, 0)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal(brew.ErrCouldNotFindPackageInfo("a2ps").Error()))
 		})
@@ -82,7 +83,7 @@ mas 'Xcode', id: 497799835`
 
 			db.AddTestBrewsByName("a2ps")
 
-			Expect(Clean([]string{}, &packages, cache, bf, Flags{DryRun: false})).To(Succeed())
+			Expect(Clean([]string{}, &packages, cache, bf, Flags{DryRun: false}, 0)).To(Succeed())
 
 			bytes, error := ioutil.ReadFile(bf)
 			Expect(error).To(BeNil())
@@ -94,7 +95,7 @@ mas 'Xcode', id: 497799835`
 			db.AddTestBrewsByName("a2ps")
 
 			_ = captureStdout(func() {
-				Expect(Clean([]string{}, &packages, cache, bf, Flags{DryRun: true})).To(Succeed())
+				Expect(Clean([]string{}, &packages, cache, bf, Flags{DryRun: true}, 0)).To(Succeed())
 			})
 
 			bytes, error := ioutil.ReadFile(bf)
@@ -118,7 +119,7 @@ mas 'Xcode', id: 497799835
 `
 
 			output := captureStdout(func() {
-				Expect(Clean([]string{}, &packages, cache, bf, Flags{DryRun: true})).To(Succeed())
+				Expect(Clean([]string{}, &packages, cache, bf, Flags{DryRun: true}, 0)).To(Succeed())
 			})
 
 			Expect(output).To(Equal(expectedOutput))

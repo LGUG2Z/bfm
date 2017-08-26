@@ -36,7 +36,7 @@ var _ = Describe("Remove", func() {
 
 	Describe("When the command is called without any flags", func() {
 		It("Should return an error with info about required flags for specifying package types", func() {
-			err := Remove([]string{"something"}, &brewfile.Packages{}, cache, "", Flags{})
+			err := Remove([]string{"something"}, &brewfile.Packages{}, cache, "", Flags{}, 0)
 			Expect(err).To(HaveOccurred())
 
 			errorMessage := err.Error()
@@ -50,7 +50,7 @@ var _ = Describe("Remove", func() {
 			Expect(t.Create()).To(Succeed())
 			defer t.Remove()
 
-			error := Remove([]string{"a2ps"}, &packages, cache, bf, Flags{Brew: true})
+			error := Remove([]string{"a2ps"}, &packages, cache, bf, Flags{Brew: true}, 0)
 			Expect(error).To(HaveOccurred())
 
 			errorMessage := error.Error()
@@ -66,7 +66,7 @@ var _ = Describe("Remove", func() {
 			defer t.Remove()
 
 			_ = captureStdout(func() {
-				error := Remove([]string{"a2ps"}, &packages, cache, bf, Flags{Brew: true, DryRun: true})
+				error := Remove([]string{"a2ps"}, &packages, cache, bf, Flags{Brew: true, DryRun: true}, 0)
 				Expect(error).ToNot(HaveOccurred())
 			})
 
@@ -82,7 +82,7 @@ var _ = Describe("Remove", func() {
 			defer t.Remove()
 
 			_ = captureStdout(func() {
-				error := Remove([]string{"some/repo"}, &packages, cache, bf, Flags{Tap: true})
+				error := Remove([]string{"some/repo"}, &packages, cache, bf, Flags{Tap: true}, 0)
 				Expect(error).ToNot(HaveOccurred())
 			})
 
@@ -98,7 +98,7 @@ var _ = Describe("Remove", func() {
 			defer t.Remove()
 
 			_ = captureStdout(func() {
-				error := Remove([]string{"firefox"}, &packages, cache, bf, Flags{Cask: true})
+				error := Remove([]string{"firefox"}, &packages, cache, bf, Flags{Cask: true}, 0)
 				Expect(error).ToNot(HaveOccurred())
 			})
 
@@ -114,7 +114,7 @@ var _ = Describe("Remove", func() {
 			defer t.Remove()
 
 			_ = captureStdout(func() {
-				error := Remove([]string{"Xcode"}, &packages, cache, bf, Flags{Mas: true})
+				error := Remove([]string{"Xcode"}, &packages, cache, bf, Flags{Mas: true}, 0)
 				Expect(error).ToNot(HaveOccurred())
 			})
 
@@ -125,42 +125,20 @@ var _ = Describe("Remove", func() {
 		})
 	})
 
-	Describe("When the command is called for a brew entry without --required or --all", func() {
-		It("Should remove a the brew entry from the Brewfile", func() {
-			Expect(db.AddTestBrewsByName("bash")).To(Succeed())
-			Expect(db.AddTestBrewsFromInfo(brew.Info{FullName: "a2ps", Dependencies: []string{"bash"}})).To(Succeed())
-
-			contents := `
-brew 'a2ps'
-brew 'bash' # required by: a2ps
-	`
-			t := TestFile{Path: bf, Contents: contents}
-			Expect(t.Create()).To(Succeed())
-			defer t.Remove()
-
-			error := Remove([]string{"a2ps"}, &packages, cache, bf, Flags{Brew: true})
-			Expect(error).ToNot(HaveOccurred())
-
-			Expect(packages.Brew).To(HaveLen(1))
-			Expect(packages.Brew[0]).To(Equal("brew 'bash'"))
-
-		})
-	})
-
-	Describe("When the command is called for a brew entry --required", func() {
+	Describe("When the command is called for a brew entry with level Required", func() {
 		It("Should remove a the brew entry and its required dependencies from the Brewfile", func() {
 			Expect(db.AddTestBrewsByName("bash")).To(Succeed())
 			Expect(db.AddTestBrewsFromInfo(brew.Info{FullName: "a2ps", Dependencies: []string{"bash"}})).To(Succeed())
 
 			contents := `
 brew 'a2ps'
-brew 'bash' # required by: a2ps
-	`
+brew 'bash' # [required by: a2ps]
+`
 			t := TestFile{Path: bf, Contents: contents}
 			Expect(t.Create()).To(Succeed())
 			defer t.Remove()
 
-			error := Remove([]string{"a2ps"}, &packages, cache, bf, Flags{Brew: true, RemovePackageAndRequired: true})
+			error := Remove([]string{"a2ps"}, &packages, cache, bf, Flags{Brew: true, RemovePackageAndRequired: true}, brew.Required)
 			Expect(error).ToNot(HaveOccurred())
 
 			Expect(packages.Brew).To(HaveLen(0))
@@ -176,7 +154,7 @@ brew 'bash' # required by: a2ps
 
 			contents := `
 brew 'a2ps'
-brew 'bash' # required by: a2ps, zsh
+brew 'bash' # [required by: a2ps, zsh]
 brew 'zsh'
 		`
 
@@ -184,17 +162,17 @@ brew 'zsh'
 			Expect(t.Create()).To(Succeed())
 			defer t.Remove()
 
-			error := Remove([]string{"a2ps"}, &packages, cache, bf, Flags{Brew: true, RemovePackageAndRequired: true})
+			error := Remove([]string{"a2ps"}, &packages, cache, bf, Flags{Brew: true, RemovePackageAndRequired: true}, brew.Required)
 			Expect(error).ToNot(HaveOccurred())
 
 			Expect(packages.Brew).To(HaveLen(2))
-			Expect(packages.Brew[0]).To(Equal("brew 'bash' # required by: zsh"))
+			Expect(packages.Brew[0]).To(Equal("brew 'bash' # [required by: zsh]"))
 			Expect(packages.Brew[1]).To(Equal("brew 'zsh'"))
 
 		})
 	})
 
-	Describe("When the command is called for a brew entry --all", func() {
+	Describe("When the command is called for a brew entry with level Build", func() {
 		It("Should remove a the brew entry and its required, recommended and build dependencies from the Brewfile", func() {
 			Expect(db.AddTestBrewsByName("bash", "zsh", "fish", "sh")).To(Succeed())
 			Expect(db.AddTestBrewsFromInfo(
@@ -209,7 +187,7 @@ brew 'zsh'
 
 			contents := `
 brew 'a2ps'
-brew 'bash' # required by: a2ps
+brew 'bash' # [required by: a2ps]
 brew 'fish'
 brew 'sh'
 brew 'zsh'
@@ -219,7 +197,7 @@ brew 'zsh'
 			Expect(t.Create()).To(Succeed())
 			defer t.Remove()
 
-			error := Remove([]string{"a2ps"}, &packages, cache, bf, Flags{Brew: true, RemoveAll: true})
+			error := Remove([]string{"a2ps"}, &packages, cache, bf, Flags{Brew: true, RemoveAll: true}, brew.Build)
 			Expect(error).ToNot(HaveOccurred())
 
 			Expect(packages.Brew).To(HaveLen(0))
@@ -244,7 +222,7 @@ brew 'zsh'
 
 			contents := `
 brew 'a2ps'
-brew 'bash' # required by: a2ps, vim
+brew 'bash' # [required by: a2ps, vim]
 brew 'fish'
 brew 'sh'
 brew 'zsh'
@@ -255,11 +233,11 @@ brew 'vim'
 			Expect(t.Create()).To(Succeed())
 			defer t.Remove()
 
-			error := Remove([]string{"a2ps"}, &packages, cache, bf, Flags{Brew: true, RemoveAll: true})
+			error := Remove([]string{"a2ps"}, &packages, cache, bf, Flags{Brew: true, RemoveAll: true}, brew.Build)
 			Expect(error).ToNot(HaveOccurred())
 
 			Expect(packages.Brew).To(HaveLen(2))
-			Expect(packages.Brew[0]).To(Equal("brew 'bash' # required by: vim"))
+			Expect(packages.Brew[0]).To(Equal("brew 'bash' # [required by: vim]"))
 			Expect(packages.Brew[1]).To(Equal("brew 'vim'"))
 
 		})

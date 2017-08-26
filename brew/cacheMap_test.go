@@ -10,7 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Map", func() {
+var _ = Describe("CacheMap", func() {
 	var (
 		cacheMap             CacheMap
 		cache                Cache
@@ -77,29 +77,17 @@ var _ = Describe("Map", func() {
 			packages := []string{"brew 'vim'", "brew 'python'"}
 			cacheMap.FromPackages(packages)
 
-			cacheMap.ResolveRequiredDependencyMap()
+			cacheMap.ResolveDependencyMap(Required)
 
 			Expect(cacheMap.Map["python"].RequiredBy).To(ContainElement("vim"))
 		})
 	})
 
 	Describe("With a functioning bolt db", func() {
-		It("Should add a new package without any of its dependencies", func() {
-			Expect(db.AddTestBrewsFromInfo(infoWithDependencies...)).To(Succeed())
-
-			cacheMap.Add(Entry{Name: "vim", RestartService: "true", Args: []string{"with-override-system-vim"}}, AddPackageOnly)
-
-			Expect(cacheMap.Map).To(HaveKey("vim"))
-			notHave := []string{"ruby", "python", "go", "node"}
-			for _, e := range notHave {
-				Expect(cacheMap.Map).ToNot(HaveKey(e))
-			}
-		})
-
 		It("Should add a new package with its required dependencies", func() {
 			Expect(db.AddTestBrewsFromInfo(infoWithDependencies...)).To(Succeed())
 
-			cacheMap.Add(Entry{Name: "vim", RestartService: "true", Args: []string{"with-override-system-vim"}}, AddPackageAndRequired)
+			cacheMap.Add(Entry{Name: "vim", RestartService: "true", Args: []string{"with-override-system-vim"}}, Required)
 
 			have := []string{"vim", "python"}
 			for _, e := range have {
@@ -115,7 +103,7 @@ var _ = Describe("Map", func() {
 		It("Should add a new package with all of its required, recommended, optional and build dependencies", func() {
 			Expect(db.AddTestBrewsFromInfo(infoWithDependencies...)).To(Succeed())
 
-			cacheMap.Add(Entry{Name: "vim", RestartService: "true", Args: []string{"with-override-system-vim"}}, AddAll)
+			cacheMap.Add(Entry{Name: "vim", RestartService: "true", Args: []string{"with-override-system-vim"}}, Build)
 
 			have := []string{"vim", "python", "ruby", "go", "node"}
 			for _, e := range have {
@@ -125,28 +113,11 @@ var _ = Describe("Map", func() {
 	})
 
 	Describe("Initialised with a Cache and populated with packages", func() {
-		It("Should remove a package without removing any of its dependencies", func() {
-			Expect(db.AddTestBrewsFromInfo(infoWithDependencies...)).To(Succeed())
-
-			cacheMap.Add(Entry{Name: "vim", RestartService: "true", Args: []string{"with-override-system-vim"}}, AddAll)
-			cacheMap.Remove("vim", RemovePackageOnly)
-
-			have := []string{"python", "ruby", "go", "node"}
-			for _, e := range have {
-				Expect(cacheMap.Map).To(HaveKey(e))
-			}
-
-			notHave := []string{"vim"}
-			for _, e := range notHave {
-				Expect(cacheMap.Map).ToNot(HaveKey(e))
-			}
-		})
-
 		It("Should remove a package and its required dependencies if they are not required by other packages", func() {
 			Expect(db.AddTestBrewsFromInfo(infoWithDependencies...)).To(Succeed())
 
-			cacheMap.Add(Entry{Name: "vim", RestartService: "true", Args: []string{"with-override-system-vim"}}, AddAll)
-			cacheMap.Remove("vim", RemovePackageAndRequired)
+			cacheMap.Add(Entry{Name: "vim", RestartService: "true", Args: []string{"with-override-system-vim"}}, Build)
+			cacheMap.Remove("vim", Required)
 
 			have := []string{"ruby", "go", "node"}
 			for _, e := range have {
@@ -162,8 +133,8 @@ var _ = Describe("Map", func() {
 		It("Should remove a package and all of its required, recommended, build and optional dependencies if they are not required by other packages", func() {
 			Expect(db.AddTestBrewsFromInfo(infoWithDependencies...)).To(Succeed())
 
-			cacheMap.Add(Entry{Name: "vim", RestartService: "true", Args: []string{"with-override-system-vim"}}, AddAll)
-			cacheMap.Remove("vim", RemoveAll)
+			cacheMap.Add(Entry{Name: "vim", RestartService: "true", Args: []string{"with-override-system-vim"}}, Build)
+			cacheMap.Remove("vim", Build)
 
 			notHave := []string{"vim", "python", "ruby", "go", "node"}
 			for _, e := range notHave {

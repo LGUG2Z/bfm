@@ -77,7 +77,7 @@ var _ = Describe("Entry", func() {
 		})
 
 		It("Formats the Entry with a comment specifying which other packages it is required by", func() {
-			expected := `brew 'vim' # required by: developers`
+			expected := `brew 'vim' # [required by: developers]`
 			entry := Entry{Name: "vim", RequiredBy: []string{"developers"}}
 
 			actual, err := entry.Format()

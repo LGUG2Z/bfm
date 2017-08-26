@@ -30,7 +30,6 @@ type Flags struct {
 	Brew, Tap, Cask, Mas, DryRun        bool
 	Args                                []string
 	RestartService, MasID               string
-	AddPackageAndRequired, AddAll       bool
 	RemovePackageAndRequired, RemoveAll bool
 }
 
@@ -57,12 +56,12 @@ var cleanCmd = &cobra.Command{
 
 		cache := brew.Cache{DB: db}
 
-		err = Clean(args, &packages, cache, brewfilePath, cleanFlags)
+		err = Clean(args, &packages, cache, brewfilePath, cleanFlags, level)
 		errorExit(err)
 	},
 }
 
-func Clean(args []string, packages *brewfile.Packages, cache brew.Cache, brewfilePath string, flags Flags) error {
+func Clean(args []string, packages *brewfile.Packages, cache brew.Cache, brewfilePath string, flags Flags, level int) error {
 	if err := packages.FromBrewfile(brewfilePath); err != nil {
 		return err
 	}
@@ -72,7 +71,7 @@ func Clean(args []string, packages *brewfile.Packages, cache brew.Cache, brewfil
 		return err
 	}
 
-	if err := cacheMap.ResolveRequiredDependencyMap(); err != nil {
+	if err := cacheMap.ResolveDependencyMap(level); err != nil {
 		return err
 	}
 

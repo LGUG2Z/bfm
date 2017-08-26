@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"os"
 
+	"os/exec"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"os/exec"
 )
 
 var _ = Describe("Cache", func() {

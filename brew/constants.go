@@ -3,15 +3,17 @@ package brew
 import "fmt"
 
 const (
-	RemoveAll = iota
-	RemovePackageOnly
-	RemovePackageAndRequired
+	RequiredDependency = iota
+	RecommendedDependency
+	OptionalDependency
+	BuildDependency
 )
 
 const (
-	AddAll = iota
-	AddPackageOnly
-	AddPackageAndRequired
+	Required = iota
+	Recommended
+	Optional
+	Build
 )
 
 var (

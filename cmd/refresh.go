@@ -20,7 +20,12 @@ var refreshCmd = &cobra.Command{
 		if err != nil {
 			errorExit(err)
 		}
-		defer db.Close()
+
+		defer func() {
+			if err := db.Close(); err != nil {
+				errorExit(err)
+			}
+		}()
 
 		cache := brew.Cache{DB: db}
 

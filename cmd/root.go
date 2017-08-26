@@ -18,9 +18,11 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/lgug2z/bfm/brew"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"strings"
 )
 
 var cfgFile string
@@ -29,10 +31,7 @@ var cfgFile string
 var RootCmd = &cobra.Command{
 	Use:   "bfm",
 	Short: "Manage the contents of your Brewfile.",
-	Long: `
-Brewfile Manager (bfm) is a command line tool that allows
-you to add or remove taps, brew packages, casks and mas apps
-to or from your Brewfile without having to edit it by hand.`,
+	Long:  DocsRoot,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		if _, err := os.Stat(boltPath); os.IsNotExist(err) {
 			fmt.Printf("Cache not found. Building...")
@@ -53,6 +52,7 @@ func Execute() {
 var (
 	brewfilePath string
 	boltPath     string
+	level        int
 )
 
 func init() {
@@ -79,6 +79,18 @@ func initConfig() {
 		viper.SetEnvPrefix("bfm")
 		viper.AutomaticEnv() // read in environment variables that match
 		brewfilePath = viper.GetString("brewfile")
+
+		if len(brewfilePath) < 1 {
+			fmt.Println(ErrBrewfileNotSet)
+			os.Exit(1)
+		}
+
+		level, err = resolveDependencyLevel(viper.GetString("level"))
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
 		boltPath = fmt.Sprintf("%s/%s", home, ".bfm.bolt")
 	}
 
@@ -86,4 +98,19 @@ func initConfig() {
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
 	}
+}
+
+func resolveDependencyLevel(level string) (int, error) {
+	switch strings.ToLower(level) {
+	case "required":
+		return brew.Required, nil
+	case "recommended":
+		return brew.Recommended, nil
+	case "optional":
+		return brew.Optional, nil
+	case "build":
+		return brew.Build, nil
+	}
+
+	return 0, ErrDependencyLevelNotSet
 }

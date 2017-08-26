@@ -9,9 +9,12 @@ import (
 type Entry struct {
 	Args                    []string
 	BuildDependencies       []string
+	BuildOf                 []string
 	Name                    string
 	OptionalDependencies    []string
+	OptionalFor             []string
 	RecommendedDependencies []string
+	RecommendedFor          []string
 	RequiredBy              []string
 	RequiredDependencies    []string
 	RestartService          string
@@ -52,7 +55,15 @@ func (e *Entry) Format() (string, error) {
 
 	{{- if .RestartService -}} , restart_service: {{ .RestartService }} {{- end -}}
 
-	{{- if .RequiredBy }} # required by: {{ StringsJoin .RequiredBy ", " }} {{- end -}}`
+	{{- if or .RequiredBy .RecommendedFor .OptionalFor .BuildOf }} # {{- end -}}
+
+	{{- if .RequiredBy }} [required by: {{ StringsJoin .RequiredBy ", " }}] {{- end -}}
+
+	{{- if .RecommendedFor }} [recommended for: {{ StringsJoin .RecommendedFor ", " }}] {{- end -}}
+
+	{{- if .OptionalFor }} [optional for: {{ StringsJoin .OptionalFor ", " }}] {{- end -}}
+
+	{{- if .BuildOf }} [build for: {{ StringsJoin .BuildOf ", " }}] {{- end -}}`
 
 	funcMap := template.FuncMap{"StringsJoin": strings.Join}
 	tmpl := template.Must(template.New("brew").Funcs(funcMap).Parse(source))

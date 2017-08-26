@@ -44,9 +44,6 @@ func init() {
 	addCmd.Flags().StringSliceVar(&addFlags.Args, "args", []string{}, "supply args to be used during installations and updates")
 	addCmd.Flags().StringVar(&addFlags.RestartService, "restart-service", "", "always (every time bundle runs), changed (after changes and updates)")
 	addCmd.Flags().StringVarP(&addFlags.MasID, "mas-id", "i", "", "id required for mas packages")
-
-	addCmd.Flags().BoolVarP(&addFlags.AddPackageAndRequired, "required", "r", false, "add package and all required dependencies")
-	addCmd.Flags().BoolVarP(&addFlags.AddAll, "all", "a", false, "add package and all required, recommended, optional and build dependencies")
 }
 
 // addCmd represents the add command
@@ -65,12 +62,12 @@ var addCmd = &cobra.Command{
 
 		cache := brew.Cache{DB: db}
 
-		err = Add(args, &packages, cache, brewfilePath, addFlags)
+		err = Add(args, &packages, cache, brewfilePath, addFlags, level)
 		errorExit(err)
 	},
 }
 
-func Add(args []string, packages *brewfile.Packages, cache brew.Cache, brewfilePath string, flags Flags) error {
+func Add(args []string, packages *brewfile.Packages, cache brew.Cache, brewfilePath string, flags Flags, level int) error {
 	if !flagProvided(flags) {
 		return ErrNoPackageType("add")
 	}
@@ -87,8 +84,14 @@ func Add(args []string, packages *brewfile.Packages, cache brew.Cache, brewfileP
 	}
 
 	cacheMap := brew.CacheMap{Cache: &cache, Map: make(brew.Map)}
-	cacheMap.FromPackages(packages.Brew)
-	cacheMap.ResolveRequiredDependencyMap()
+
+	if err := cacheMap.FromPackages(packages.Brew); err != nil {
+		return err
+	}
+
+	if err := cacheMap.ResolveDependencyMap(level); err != nil {
+		return err
+	}
 
 	if flags.Tap {
 		if !hasCorrectTapFormat(toAdd) {
@@ -99,7 +102,7 @@ func Add(args []string, packages *brewfile.Packages, cache brew.Cache, brewfileP
 	}
 
 	if flags.Brew {
-		updated, err := addBrewPackage(toAdd, flags.RestartService, flags.Args, cacheMap, flags)
+		updated, err := addBrewPackage(toAdd, flags.RestartService, flags.Args, cacheMap, flags, level)
 		if err != nil {
 			return err
 		}
@@ -132,7 +135,7 @@ func Add(args []string, packages *brewfile.Packages, cache brew.Cache, brewfileP
 	return nil
 }
 
-func addBrewPackage(add, restart string, args []string, cacheMap brew.CacheMap, flags Flags) ([]string, error) {
+func addBrewPackage(add, restart string, args []string, cacheMap brew.CacheMap, flags Flags, level int) ([]string, error) {
 	if len(restart) > 1 {
 		switch restart {
 		case "always":
@@ -144,18 +147,8 @@ func addBrewPackage(add, restart string, args []string, cacheMap brew.CacheMap, 
 		}
 	}
 
-	if flags.AddAll {
-		if err := cacheMap.Add(brew.Entry{Name: add, RestartService: restart, Args: args}, brew.AddAll); err != nil {
-			return []string{}, err
-		}
-	} else if flags.AddPackageAndRequired {
-		if err := cacheMap.Add(brew.Entry{Name: add, RestartService: restart, Args: args}, brew.AddPackageAndRequired); err != nil {
-			return []string{}, err
-		}
-	} else {
-		if err := cacheMap.Add(brew.Entry{Name: add, RestartService: restart, Args: args}, brew.AddPackageOnly); err != nil {
-			return []string{}, err
-		}
+	if err := cacheMap.Add(brew.Entry{Name: add, RestartService: restart, Args: args}, level); err != nil {
+		return []string{}, err
 	}
 
 	lines := []string{}

@@ -40,7 +40,7 @@ var _ = Describe("Add", func() {
 
 	Describe("When the command is called without any flags", func() {
 		It("Should return an error with info about required flags for specifying package types", func() {
-			err := Add([]string{"something"}, &brewfile.Packages{}, cache, "", Flags{})
+			err := Add([]string{"something"}, &brewfile.Packages{}, cache, "", Flags{}, 0)
 			Expect(err).To(HaveOccurred())
 
 			errorMessage := err.Error()
@@ -63,7 +63,7 @@ cask 'firefox'
 			Expect(t.Create()).To(Succeed())
 			defer t.Remove()
 
-			err := Add([]string{"a2ps"}, &packages, cache, bf+".customContents", Flags{Brew: true})
+			err := Add([]string{"a2ps"}, &packages, cache, bf+".customContents", Flags{Brew: true}, 0)
 			Expect(err).To(HaveOccurred())
 
 			errorMessage := err.Error()
@@ -74,7 +74,7 @@ cask 'firefox'
 			db.AddTestBrewsByName("a2ps")
 
 			_ = captureStdout(func() {
-				Expect(Add([]string{"a2ps"}, &packages, cache, bf, Flags{Brew: true, DryRun: true})).To(Succeed())
+				Expect(Add([]string{"a2ps"}, &packages, cache, bf, Flags{Brew: true, DryRun: true}, brew.Required)).To(Succeed())
 			})
 
 			bytes, err := ioutil.ReadFile(bf)
@@ -86,7 +86,7 @@ cask 'firefox'
 
 	Describe("When the command is called for a tap", func() {
 		It("Should return an error if the tap format is not user/repo", func() {
-			error := Add([]string{"bad:format"}, &brewfile.Packages{}, cache, bf, Flags{Tap: true})
+			error := Add([]string{"bad:format"}, &brewfile.Packages{}, cache, bf, Flags{Tap: true}, 0)
 			Expect(error).To(HaveOccurred())
 
 			errorMessage := error.Error()
@@ -95,7 +95,7 @@ cask 'firefox'
 
 		It("Should add a validly formatted tap to the Brewfile", func() {
 			_ = captureStdout(func() {
-				Expect(Add([]string{"good/format"}, &brewfile.Packages{}, cache, bf, Flags{Tap: true})).To(Succeed())
+				Expect(Add([]string{"good/format"}, &brewfile.Packages{}, cache, bf, Flags{Tap: true}, 0)).To(Succeed())
 			})
 
 			bytes, error := ioutil.ReadFile(bf)
@@ -107,7 +107,7 @@ cask 'firefox'
 
 	Describe("When the command is called for a mas app", func() {
 		It("Should return an error if no mas id is provided", func() {
-			error := Add([]string{"Xcode"}, &brewfile.Packages{}, cache, bf, Flags{Mas: true})
+			error := Add([]string{"Xcode"}, &brewfile.Packages{}, cache, bf, Flags{Mas: true}, 0)
 			Expect(error).To(HaveOccurred())
 
 			errorMessage := error.Error()
@@ -117,7 +117,7 @@ cask 'firefox'
 
 		It("Should add a mas app with a mas id to the Brewfile", func() {
 			_ = captureStdout(func() {
-				Expect(Add([]string{"Xcode"}, &brewfile.Packages{}, cache, bf, Flags{Mas: true, MasID: "123456"})).To(Succeed())
+				Expect(Add([]string{"Xcode"}, &brewfile.Packages{}, cache, bf, Flags{Mas: true, MasID: "123456"}, 0)).To(Succeed())
 			})
 
 			bytes, error := ioutil.ReadFile(bf)
@@ -130,7 +130,7 @@ cask 'firefox'
 	Describe("When the command is called for a cask", func() {
 		It("Should add a cask app to the Brewfile", func() {
 			_ = captureStdout(func() {
-				Expect(Add([]string{"firefox"}, &brewfile.Packages{}, cache, bf, Flags{Cask: true})).To(Succeed())
+				Expect(Add([]string{"firefox"}, &brewfile.Packages{}, cache, bf, Flags{Cask: true}, 0)).To(Succeed())
 			})
 
 			bytes, error := ioutil.ReadFile(bf)
@@ -143,7 +143,7 @@ cask 'firefox'
 	Describe("When called for a brew with the --restart-service flag", func() {
 		It("Should return an error explaining the valid options if an invalid option is given", func() {
 			_ = captureStdout(func() {
-				error := Add([]string{"a2ps"}, &brewfile.Packages{}, cache, bf, Flags{Brew: true, RestartService: "wrong"})
+				error := Add([]string{"a2ps"}, &brewfile.Packages{}, cache, bf, Flags{Brew: true, RestartService: "wrong"}, 0)
 				Expect(error).To(HaveOccurred())
 				Expect(error.Error()).To(Equal(ErrInvalidRestartServiceOption.Error()))
 			})
@@ -155,7 +155,7 @@ cask 'firefox'
 
 			packages := &brewfile.Packages{}
 
-			Expect(Add([]string{"a2ps"}, packages, cache, bf, Flags{Brew: true, RestartService: "always"})).To(Succeed())
+			Expect(Add([]string{"a2ps"}, packages, cache, bf, Flags{Brew: true, RestartService: "always"}, 0)).To(Succeed())
 
 			Expect(packages.Brew).ToNot(BeEmpty())
 			Expect(packages.Brew[0]).To(ContainSubstring("restart_service: true"))
@@ -167,7 +167,7 @@ cask 'firefox'
 
 			packages := &brewfile.Packages{}
 
-			Expect(Add([]string{"a2ps"}, packages, cache, bf, Flags{Brew: true, RestartService: "changed"})).To(Succeed())
+			Expect(Add([]string{"a2ps"}, packages, cache, bf, Flags{Brew: true, RestartService: "changed"}, 0)).To(Succeed())
 
 			Expect(packages.Brew).ToNot(BeEmpty())
 			Expect(packages.Brew[0]).To(ContainSubstring("restart_service: :changed"))
@@ -181,7 +181,7 @@ cask 'firefox'
 
 			packages := &brewfile.Packages{}
 
-			Expect(Add([]string{"a2ps"}, packages, cache, bf, Flags{Brew: true, Args: []string{"one", "two"}})).To(Succeed())
+			Expect(Add([]string{"a2ps"}, packages, cache, bf, Flags{Brew: true, Args: []string{"one", "two"}}, 0)).To(Succeed())
 
 			Expect(packages.Brew).ToNot(BeEmpty())
 			Expect(packages.Brew[0]).To(ContainSubstring("args: ['one', 'two']"))
@@ -189,58 +189,81 @@ cask 'firefox'
 		})
 	})
 
-	Describe("When called for a brew without --required or --all", func() {
-		It("Should add brew without any of its dependencies to the Brewfile", func() {
-			db.AddTestBrewsByName("bash")
-			db.AddTestBrewsFromInfo(brew.Info{FullName: "a2ps", Dependencies: []string{"bash"}})
-
-			packages := &brewfile.Packages{}
-			Expect(Add([]string{"a2ps"}, packages, cache, bf, Flags{Brew: true})).To(Succeed())
-
-			Expect(packages.Brew).To(HaveLen(1))
-			Expect(packages.Brew[0]).To(Equal("brew 'a2ps'"))
-
-		})
-	})
-
-	Describe("When called for a with --required", func() {
-		It("Should add brew and all of its required dependencies to the Brewfile", func() {
+	Describe("When dependency level is set to required", func() {
+		It("Should add a brew with its required dependencies to the Brewfile", func() {
 			db.AddTestBrewsByName("bash")
 			db.AddTestBrewsFromInfo(brew.Info{FullName: "a2ps", Dependencies: []string{"bash"}})
 
 			packages := &brewfile.Packages{}
 
-			Expect(Add([]string{"a2ps"}, packages, cache, bf, Flags{Brew: true, AddPackageAndRequired: true})).To(Succeed())
+			Expect(Add([]string{"a2ps"}, packages, cache, bf, Flags{Brew: true}, brew.Required)).To(Succeed())
 
 			Expect(packages.Brew).To(HaveLen(2))
 			Expect(packages.Brew[0]).To(Equal("brew 'a2ps'"))
-			Expect(packages.Brew[1]).To(Equal("brew 'bash' # required by: a2ps"))
-
+			Expect(packages.Brew[1]).To(Equal("brew 'bash' # [required by: a2ps]"))
 		})
 	})
 
-	Describe("When called for a brew with --all", func() {
-		It("Should add brew with all of its required, recommended, optional and build dependencies to the Brewfile", func() {
+	Describe("When dependency level is set to recommended", func() {
+		It("Should add a brew with its required and recommended dependencies to the Brewfile", func() {
+			db.AddTestBrewsByName("bash", "zsh")
+			db.AddTestBrewsFromInfo(brew.Info{FullName: "a2ps", Dependencies: []string{"bash"}, RecommendedDependencies: []string{"zsh"}})
+
+			packages := &brewfile.Packages{}
+
+			Expect(Add([]string{"a2ps"}, packages, cache, bf, Flags{Brew: true}, brew.Recommended)).To(Succeed())
+
+			Expect(packages.Brew).To(HaveLen(3))
+			Expect(packages.Brew[0]).To(Equal("brew 'a2ps'"))
+			Expect(packages.Brew[1]).To(Equal("brew 'bash' # [required by: a2ps]"))
+			Expect(packages.Brew[2]).To(Equal("brew 'zsh' # [recommended for: a2ps]"))
+		})
+	})
+
+	Describe("When dependency level is set to optional", func() {
+		It("Should add a brew with its required, recommended and optional dependencies to the Brewfile", func() {
+			db.AddTestBrewsByName("bash", "zsh", "fish")
+			db.AddTestBrewsFromInfo(brew.Info{
+				FullName:                "a2ps",
+				Dependencies:            []string{"bash"},
+				RecommendedDependencies: []string{"zsh"},
+				OptionalDependencies:    []string{"fish"},
+			})
+
+			packages := &brewfile.Packages{}
+
+			Expect(Add([]string{"a2ps"}, packages, cache, bf, Flags{Brew: true}, brew.Optional)).To(Succeed())
+
+			Expect(packages.Brew).To(HaveLen(4))
+			Expect(packages.Brew[0]).To(Equal("brew 'a2ps'"))
+			Expect(packages.Brew[1]).To(Equal("brew 'bash' # [required by: a2ps]"))
+			Expect(packages.Brew[2]).To(Equal("brew 'fish' # [optional for: a2ps]"))
+			Expect(packages.Brew[3]).To(Equal("brew 'zsh' # [recommended for: a2ps]"))
+		})
+
+	})
+
+	Describe("When dependency level is set to build", func() {
+		It("Should add a brew with its required, recommended, optional and build dependencies to the Brewfile", func() {
 			db.AddTestBrewsByName("bash", "zsh", "fish", "sh")
 			db.AddTestBrewsFromInfo(brew.Info{
 				FullName:                "a2ps",
 				Dependencies:            []string{"bash"},
-				OptionalDependencies:    []string{"zsh"},
-				RecommendedDependencies: []string{"fish"},
+				RecommendedDependencies: []string{"zsh"},
+				OptionalDependencies:    []string{"fish"},
 				BuildDependencies:       []string{"sh"},
 			})
 
 			packages := &brewfile.Packages{}
 
-			Expect(Add([]string{"a2ps"}, packages, cache, bf, Flags{Brew: true, AddAll: true})).To(Succeed())
+			Expect(Add([]string{"a2ps"}, packages, cache, bf, Flags{Brew: true}, brew.Build)).To(Succeed())
 
 			Expect(packages.Brew).To(HaveLen(5))
 			Expect(packages.Brew[0]).To(Equal("brew 'a2ps'"))
-			Expect(packages.Brew[1]).To(Equal("brew 'bash' # required by: a2ps"))
-			Expect(packages.Brew[2]).To(Equal("brew 'fish'"))
-			Expect(packages.Brew[3]).To(Equal("brew 'sh'"))
-			Expect(packages.Brew[4]).To(Equal("brew 'zsh'"))
-
+			Expect(packages.Brew[1]).To(Equal("brew 'bash' # [required by: a2ps]"))
+			Expect(packages.Brew[2]).To(Equal("brew 'fish' # [optional for: a2ps]"))
+			Expect(packages.Brew[3]).To(Equal("brew 'sh' # [build for: a2ps]"))
+			Expect(packages.Brew[4]).To(Equal("brew 'zsh' # [recommended for: a2ps]"))
 		})
 	})
 })

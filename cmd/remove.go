@@ -17,7 +17,6 @@ package cmd
 import (
 	"fmt"
 
-	"os"
 	"sort"
 	"strings"
 
@@ -60,12 +59,12 @@ var removeCmd = &cobra.Command{
 
 		cache := brew.Cache{DB: db}
 
-		error := Remove(args, &packages, cache, brewfilePath, removeFlags)
+		error := Remove(args, &packages, cache, brewfilePath, removeFlags, level)
 		errorExit(error)
 	},
 }
 
-func Remove(args []string, packages *brewfile.Packages, cache brew.Cache, brewfilePath string, flags Flags) error {
+func Remove(args []string, packages *brewfile.Packages, cache brew.Cache, brewfilePath string, flags Flags, level int) error {
 	if !flagProvided(flags) {
 		return ErrNoPackageType("remove")
 	}
@@ -82,8 +81,14 @@ func Remove(args []string, packages *brewfile.Packages, cache brew.Cache, brewfi
 	}
 
 	cacheMap := brew.CacheMap{Cache: &cache, Map: make(brew.Map)}
-	cacheMap.FromPackages(packages.Brew)
-	cacheMap.ResolveRequiredDependencyMap()
+
+	if err := cacheMap.FromPackages(packages.Brew); err != nil {
+		return err
+	}
+
+	if err := cacheMap.ResolveDependencyMap(level); err != nil {
+		return err
+	}
 
 	if flags.Tap {
 		packages.Tap = removePackage(packageType, toRemove, packages.Tap)
@@ -91,7 +96,7 @@ func Remove(args []string, packages *brewfile.Packages, cache brew.Cache, brewfi
 	}
 
 	if flags.Brew {
-		updated, err := removeBrewPackage(toRemove, cacheMap, flags)
+		updated, err := removeBrewPackage(toRemove, cacheMap, level)
 		if err != nil {
 			return err
 		}
@@ -119,22 +124,9 @@ func Remove(args []string, packages *brewfile.Packages, cache brew.Cache, brewfi
 	return nil
 }
 
-func removeBrewPackage(remove string, cacheMap brew.CacheMap, flags Flags) ([]string, error) {
-	if flags.RemoveAll {
-		if err := cacheMap.Remove(remove, brew.RemoveAll); err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-	} else if flags.RemovePackageAndRequired {
-		if err := cacheMap.Remove(remove, brew.RemovePackageAndRequired); err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-	} else {
-		if err := cacheMap.Remove(remove, brew.RemovePackageOnly); err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
+func removeBrewPackage(remove string, cacheMap brew.CacheMap, level int) ([]string, error) {
+	if err := cacheMap.Remove(remove, level); err != nil {
+		return []string{}, err
 	}
 
 	lines := []string{}

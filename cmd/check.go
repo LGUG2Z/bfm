@@ -17,9 +17,13 @@ package cmd
 import (
 	"fmt"
 
-	"os"
-
+	"bytes"
+	"github.com/boltdb/bolt"
+	"github.com/lgug2z/bfm/brew"
+	"github.com/lgug2z/bfm/brewfile"
 	"github.com/spf13/cobra"
+	"strings"
+	"text/template"
 )
 
 var checkFlags Flags
@@ -40,24 +44,164 @@ var checkCmd = &cobra.Command{
 	Long:  DocsCheck,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if !flagProvided(checkFlags) {
-			fmt.Println("A package type must be specified. See 'bfm check --help'.")
-			os.Exit(1)
-		}
+		var packages brewfile.Packages
 
-		packageToCheck := args[0]
-		packageType := getPackageType(checkFlags)
-
-		contents, err := readFileContents(brewfilePath)
+		db, err := bolt.Open(boltPath, 0600, nil)
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			errorExit(err)
 		}
 
-		if entryExists(contents, packageType, packageToCheck) {
-			fmt.Printf("%s '%s' is in the Brewfile.\n", packageType, packageToCheck)
-		} else {
-			fmt.Printf("%s '%s' is not in the Brewfile.\n", packageType, packageToCheck)
-		}
+		cache := brew.Cache{DB: db}
+
+		err = Check(args, &packages, cache, brewfilePath, checkFlags, level)
+		errorExit(err)
 	},
+}
+
+func Check(args []string, packages *brewfile.Packages, cache brew.Cache, brewfilePath string, flags Flags, level int) error {
+	if !flagProvided(checkFlags) {
+		return ErrNoPackageType("check")
+	}
+
+	if err := packages.FromBrewfile(brewfilePath); err != nil {
+		return err
+	}
+
+	toCheck := args[0]
+	packageType := getPackageType(checkFlags)
+
+	cacheMap := brew.CacheMap{Cache: &cache, Map: make(brew.Map)}
+
+	if err := cacheMap.FromPackages(packages.Brew); err != nil {
+		return err
+	}
+
+	if err := cacheMap.ResolveDependencyMap(level); err != nil {
+		return err
+	}
+
+	if entryExists(string(packages.Bytes()), packageType, toCheck) {
+		switch packageType {
+		case "brew":
+
+			presence := `{{ .Name }} is present in the Brewfile.`
+			dependencies := `{{- if (or .RequiredDependencies .RecommendedDependencies .OptionalDependencies .BuildDependencies) }}
+
+{{- if .RequiredDependencies }}
+Required dependencies: {{ StringsJoin .RequiredDependencies ", " }}
+{{- end -}}
+
+{{- if .RecommendedDependencies }}
+Recommended dependencies: {{ StringsJoin .RecommendedDependencies ", " }}
+{{- end -}}
+
+{{- if .OptionalDependencies }}
+Optional dependencies: {{ StringsJoin .OptionalDependencies ", " }}
+{{- end -}}
+
+{{- if .BuildDependencies }}
+Build Dependencies: {{ StringsJoin .BuildDependencies ", " }}
+{{- end -}}
+
+{{- else }}
+No required, recommended, optional or build dependencies.
+{{- end -}}`
+
+			dependencyOf := `{{- if (or .RequiredBy .RecommendedFor .OptionalFor .BuildOf) -}}
+{{- if .RequiredBy }}
+Required dependency of: {{ StringsJoin .RequiredBy ", " }}
+{{- end -}}
+
+{{- if .RecommendedFor }}
+Recommended dependency of: {{ StringsJoin .RecommendedFor ", " }}
+{{- end -}}
+
+{{- if .OptionalFor }}
+Optional dependency of: {{ StringsJoin .OptionalFor ", " }}
+{{- end -}}
+
+{{- if .BuildOf }}
+Build dependency of: {{ StringsJoin .BuildOf ", " }}
+{{- end -}}
+{{- else }}
+Not a required, recommended, optional or build dependency of any other package.
+{{- end -}}`
+
+			//			source := `
+			//{{ .Name }} is present in the Brewfile.
+			//{{- if (or .RequiredDependencies .RecommendedDependencies .OptionalDependencies .BuildDependencies) }}
+			//
+			//{{- if .RequiredDependencies }}
+			//Required dependencies: {{ StringsJoin .RequiredDependencies ", " }}
+			//{{- end -}}
+			//
+			//{{- if .RecommendedDependencies }}
+			//
+			//Recommended dependencies: {{ StringsJoin .RecommendedDependencies ", " }}
+			//{{- end -}}
+			//
+			//{{- if .OptionalDependencies }}
+			//Optional dependencies: {{ StringsJoin .OptionalDependencies ", " }}
+			//{{- end -}}
+			//
+			//{{- if .BuildDependencies }}
+			//Build Dependencies: {{ StringsJoin .BuildDependencies ", " }}
+			//{{- end -}}
+			//{{ else }}
+			//
+			//No required, recommended, optional or build dependencies.
+			//{{- end -}}
+			//
+			//{{- if or .RequiredBy .RecommendedFor .OptionalFor .BuildOf }}
+			//{{ end -}}
+			//
+			//{{- if .RequiredBy }}
+			//Required dependency of: {{ StringsJoin .RequiredBy ", " }}
+			//{{- end -}}
+			//
+			//{{- if .RecommendedFor }}
+			//Recommended dependency of: {{ StringsJoin .RecommendedFor ", " }}
+			//{{- end -}}
+			//
+			//{{- if .OptionalFor }}
+			//Optional dependency of: {{ StringsJoin .OptionalFor ", " }}
+			//{{- end -}}
+			//
+			//{{- if .BuildOf }}
+			//Build dependency of: {{ StringsJoin .BuildOf ", " }}
+			//{{- end -}}`
+
+			brew := cacheMap.Map[toCheck]
+
+			var presenceBytes bytes.Buffer
+			var dependenciesBytes bytes.Buffer
+			var dependencyOfBytes bytes.Buffer
+
+			funcMap := template.FuncMap{"StringsJoin": strings.Join}
+			tmpl := template.Must(template.New("presence").Funcs(funcMap).Parse(presence))
+			if err := tmpl.Execute(&presenceBytes, brew); err != nil {
+				return err
+			}
+
+			tmpl = template.Must(template.New("dependencies").Funcs(funcMap).Parse(dependencies))
+			if err := tmpl.Execute(&dependenciesBytes, brew); err != nil {
+				return err
+			}
+
+			tmpl = template.Must(template.New("dependencyOf").Funcs(funcMap).Parse(dependencyOf))
+			if err := tmpl.Execute(&dependencyOfBytes, brew); err != nil {
+				return err
+			}
+
+			fmt.Println(presenceBytes.String())
+			fmt.Println(dependenciesBytes.String())
+			fmt.Println(dependencyOfBytes.String())
+		default:
+			fmt.Printf("%s is present in the Brewfile.\n", toCheck)
+		}
+	} else {
+		fmt.Printf("%s is not present in the Brewfile.\n", toCheck)
+	}
+
+	return nil
 }
