@@ -78,12 +78,12 @@ func Remove(args []string, packages *brewfile.Packages, cache brew.Cache, brewfi
 	}
 
 	if flags.Tap {
-		packages.Tap = removePackage(packageType, toRemove, packages.Tap)
+		packages.Tap = removePackage(packageType, toRemove, packages.Tap, flags)
 		sort.Strings(packages.Tap)
 	}
 
 	if flags.Brew {
-		updated, err := removeBrewPackage(toRemove, cacheMap, level)
+		updated, err := removeBrewPackage(toRemove, cacheMap, flags, level)
 		if err != nil {
 			return err
 		}
@@ -91,12 +91,12 @@ func Remove(args []string, packages *brewfile.Packages, cache brew.Cache, brewfi
 	}
 
 	if flags.Cask {
-		packages.Cask = removePackage(packageType, toRemove, packages.Cask)
+		packages.Cask = removePackage(packageType, toRemove, packages.Cask, flags)
 		sort.Strings(packages.Cask)
 	}
 
 	if flags.Mas {
-		packages.Mas = removePackage(packageType, toRemove, packages.Mas)
+		packages.Mas = removePackage(packageType, toRemove, packages.Mas, flags)
 		sort.Strings(packages.Mas)
 	}
 
@@ -115,7 +115,7 @@ func Remove(args []string, packages *brewfile.Packages, cache brew.Cache, brewfi
 	return nil
 }
 
-func removeBrewPackage(remove string, cacheMap brew.CacheMap, level int) ([]string, error) {
+func removeBrewPackage(remove string, cacheMap brew.CacheMap, flags Flags, level int) ([]string, error) {
 	if err := cacheMap.Remove(remove, level); err != nil {
 		return []string{}, err
 	}
@@ -132,10 +132,13 @@ func removeBrewPackage(remove string, cacheMap brew.CacheMap, level int) ([]stri
 	}
 
 	sort.Strings(lines)
+	if !flags.DryRun {
+		fmt.Printf("Removed %s '%s' from Brewfile.\n", "brew", remove)
+	}
 	return lines, nil
 }
 
-func removePackage(packageType, packageToRemove string, packages []string) []string {
+func removePackage(packageType, packageToRemove string, packages []string, flags Flags) []string {
 	updatedPackages := []string{}
 	entryToRemove := constructBaseEntry(packageType, packageToRemove)
 
@@ -143,7 +146,9 @@ func removePackage(packageType, packageToRemove string, packages []string) []str
 		if !strings.HasPrefix(p, entryToRemove) {
 			updatedPackages = append(updatedPackages, p)
 		} else {
-			fmt.Printf("Removed %s '%s' from Brewfile.\n", packageType, packageToRemove)
+			if !flags.DryRun {
+				fmt.Printf("Removed %s '%s' from Brewfile.\n", packageType, packageToRemove)
+			}
 		}
 	}
 

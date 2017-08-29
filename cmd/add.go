@@ -155,6 +155,11 @@ func addBrewPackage(add, restart string, args []string, cacheMap brew.CacheMap, 
 	}
 
 	sort.Strings(lines)
+
+	if !flags.DryRun {
+		fmt.Printf("Added %s '%s' to Brewfile.\n", "brew", add)
+	}
+
 	return lines, nil
 }
 
@@ -165,7 +170,10 @@ func addPackage(packageType, newPackage string, packages []string, flags Flags) 
 		packageEntry = appendMasID(packageEntry, flags.MasID)
 	}
 
-	fmt.Printf("Added %s %s to Brewfile.\n", packageType, newPackage)
+	if !flags.DryRun {
+		fmt.Printf("Added %s '%s' to Brewfile.\n", packageType, newPackage)
+	}
+
 	return append(packages, packageEntry)
 }
 

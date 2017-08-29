@@ -139,7 +139,7 @@ brew 'bash' # [required by: a2ps]
 			Expect(t.Create()).To(Succeed())
 			defer t.Remove()
 
-			error := Remove([]string{"a2ps"}, &packages, cache, bf, Flags{Brew: true, RemovePackageAndRequired: true}, brew.Required)
+			error := Remove([]string{"a2ps"}, &packages, cache, bf, Flags{Brew: true}, brew.Required)
 			Expect(error).ToNot(HaveOccurred())
 
 			Expect(packages.Brew).To(HaveLen(0))
@@ -163,7 +163,7 @@ brew 'zsh'
 			Expect(t.Create()).To(Succeed())
 			defer t.Remove()
 
-			error := Remove([]string{"a2ps"}, &packages, cache, bf, Flags{Brew: true, RemovePackageAndRequired: true}, brew.Required)
+			error := Remove([]string{"a2ps"}, &packages, cache, bf, Flags{Brew: true}, brew.Required)
 			Expect(error).ToNot(HaveOccurred())
 
 			Expect(packages.Brew).To(HaveLen(2))
@@ -198,7 +198,7 @@ brew 'zsh'
 			Expect(t.Create()).To(Succeed())
 			defer t.Remove()
 
-			error := Remove([]string{"a2ps"}, &packages, cache, bf, Flags{Brew: true, RemoveAll: true}, brew.Build)
+			error := Remove([]string{"a2ps"}, &packages, cache, bf, Flags{Brew: true}, brew.Build)
 			Expect(error).ToNot(HaveOccurred())
 
 			Expect(packages.Brew).To(HaveLen(0))
@@ -234,7 +234,7 @@ brew 'vim'
 			Expect(t.Create()).To(Succeed())
 			defer t.Remove()
 
-			error := Remove([]string{"a2ps"}, &packages, cache, bf, Flags{Brew: true, RemoveAll: true}, brew.Build)
+			error := Remove([]string{"a2ps"}, &packages, cache, bf, Flags{Brew: true}, brew.Build)
 			Expect(error).ToNot(HaveOccurred())
 
 			Expect(packages.Brew).To(HaveLen(2))
