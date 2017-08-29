@@ -25,9 +25,9 @@ func init() {
 	addCmd.Flags().BoolVarP(&addFlags.Cask, "cask", "c", false, "add a cask")
 	addCmd.Flags().BoolVarP(&addFlags.Mas, "mas", "m", false, "add a mas app")
 
-	addCmd.Flags().StringSliceVar(&addFlags.Args, "args", []string{}, "supply args to be used during installations and updates")
+	addCmd.Flags().StringSliceVar(&addFlags.Args, "args", []string{}, "args to be used during installations and updates of brews")
 	addCmd.Flags().StringVar(&addFlags.RestartService, "restart-service", "", "always (every time bundle runs), changed (after changes and updates)")
-	addCmd.Flags().StringVarP(&addFlags.MasID, "mas-id", "i", "", "id required for mas packages")
+	addCmd.Flags().StringVarP(&addFlags.MasID, "mas-id", "i", "", "id for mas packages (required)")
 }
 
 // addCmd represents the add command

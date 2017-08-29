@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/lgug2z/bfm/brew"
-	homedir "github.com/mitchellh/go-homedir"
+	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -44,6 +44,12 @@ var (
 
 func init() {
 	cobra.OnInitialize(initConfig)
+}
+
+type Flags struct {
+	Brew, Tap, Cask, Mas, DryRun bool
+	Args                         []string
+	RestartService, MasID        string
 }
 
 // initConfig reads in config file and ENV variables if set.

@@ -47,7 +47,7 @@ The type must be specified using the appropriate flag.
 
 Taps must conform to the format <user/repo>.
 
-Brew packages can have arguments specified using the --arg
+Brew packages can have arguments specified using the --args
 flag (multiple arguments can be separated by using a comma),
 and can specify service restart behaviour ('always' to
 restart every time bundle is run, 'changed' to restart only
@@ -59,13 +59,12 @@ can be found by running 'mas search <app>'.
 Examples:
 
 bfm add -t homebrew/dupes
-bfm add -b vim -a HEAD,with-override-system-vi
+bfm add -b vim --args HEAD,with-override-system-vi
 bfm add -b crisidev/chunkwm/chunkwm --restart-service changed
 bfm add -c macvim
 bfm add -m Xcode -i 497799835
 
 `
-	// TODO: Update this depending on whether templating will be included
 	DocsCheck = `
 Checks for the presence of the argument as an entry in the
 Brewfile.
@@ -88,7 +87,7 @@ bfm check -m Xcode
 	DocsClean = `
 Cleans up your Brewfile, removing all comments and sorting
 all dependencies into alphabetised groups with the order tap
--> brew -> cask -> mas.
+-> brew (primary) -> brew (dependent) -> cask -> mas.
 
 This command will modify your Brewfile without creating a
 backup. Consider running the command with the --dry-run flag
@@ -101,7 +100,7 @@ bfm clean --dry-run
 
 `
 	DocsRefresh = `
-Refreshes the bfm cache stored at ''$HOME/.bfm.bolt'.
+Refreshes the bfm cache stored at '$HOME/.bfm.bolt'.
 
 This command will get information about all brews and casks
 it is possible for you to install given the repositories
@@ -128,8 +127,7 @@ The type must be specified using the appropriate flag.
 Examples:
 
 bfm remove -t homebrew/dupes
-bfm remove -b neovim --required
-bfm remove -b vim --all
+bfm remove -b vim
 bfm remove -c macvim
 bfm remove -m Xcode
 

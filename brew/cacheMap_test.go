@@ -16,15 +16,15 @@ var _ = Describe("CacheMap", func() {
 		cache                Cache
 		dbFile               = fmt.Sprintf("%s/src/github.com/lgug2z/bfm/testData/testDB.bolt", os.Getenv("GOPATH"))
 		infoWithDependencies = []Info{
-			Info{FullName: "vim",
+			{FullName: "vim",
 				Dependencies:            []string{"python"},
 				OptionalDependencies:    []string{"node"},
 				BuildDependencies:       []string{"go"},
 				RecommendedDependencies: []string{"ruby"}},
-			Info{FullName: "python"},
-			Info{FullName: "ruby"},
-			Info{FullName: "go"},
-			Info{FullName: "node"},
+			{FullName: "python"},
+			{FullName: "ruby"},
+			{FullName: "go"},
+			{FullName: "node"},
 		}
 		db *TestDB
 	)

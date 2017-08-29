@@ -1,17 +1,3 @@
-// Copyright © 2017 Jade Iqbal <jadeiqbal@fastmail.com>
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package cmd
 
 import (
@@ -37,8 +23,6 @@ func init() {
 	removeCmd.Flags().BoolVarP(&removeFlags.Brew, "brew", "b", false, "remove a brew package")
 	removeCmd.Flags().BoolVarP(&removeFlags.Cask, "cask", "c", false, "remove a cask")
 	removeCmd.Flags().BoolVarP(&removeFlags.Mas, "mas", "m", false, "remove a mas app")
-	removeCmd.Flags().BoolVar(&removeFlags.RemoveAll, "all-unused", false, "remove brew package and its unused required, recommended, optional and build dependencies")
-	removeCmd.Flags().BoolVar(&removeFlags.RemovePackageAndRequired, "required-unused", false, "remove brew package and its unused required dependencies")
 }
 
 // removeCmd represents the remove command
