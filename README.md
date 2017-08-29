@@ -171,7 +171,7 @@ cask 'macvim'
 mas 'Xcode', id: 497799835
 ```
 
-By splitting up the brews into primary and dependent sections helps to separate the signal
+Splitting up the brews into primary and dependent sections helps to separate the signal
 from the noise. Essentially, you should have a clear understanding of what every package
 in the primary brews section does and why it is there. If you don't, it is worth rethinking
 its place in your whitelist.
