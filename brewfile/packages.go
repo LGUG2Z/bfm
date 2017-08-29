@@ -12,6 +12,7 @@ type Packages struct {
 	Tap, Brew, Cask, Mas []string
 }
 
+// Parses a Brewfile and separates the taps, brews, casks and mas apps.
 func (p *Packages) FromBrewfile(brewfilePath string) error {
 	bytes, err := ioutil.ReadFile(brewfilePath)
 	if err != nil {
@@ -33,6 +34,8 @@ func (p *Packages) FromBrewfile(brewfilePath string) error {
 	return nil
 }
 
+// Creates the final output of an updated Brewfile as a byte array in the order taps ->
+// primary brews -> dependent brews -> casks -> mas apps.
 func (p *Packages) Bytes() ([]byte, error) {
 	entries := `{{ range . }}
 {{- . }}
