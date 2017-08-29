@@ -27,6 +27,7 @@ func (e *Entry) FromInfo(i Info) {
 	e.DetermineDependencies(i)
 }
 
+// Uses brew info of a package to separate dependencies into required, recommended, optional and build.
 func (e *Entry) DetermineDependencies(i Info) {
 	for _, dependency := range i.Dependencies {
 		e.RequiredDependencies = append(e.RequiredDependencies, dependency)
@@ -48,6 +49,7 @@ func (e *Entry) DetermineDependencies(i Info) {
 	}
 }
 
+// Format an brew Entry to be a valid Brewfile line.
 func (e *Entry) Format() (string, error) {
 	var bytes bytes.Buffer
 

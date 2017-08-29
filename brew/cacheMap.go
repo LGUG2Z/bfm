@@ -15,6 +15,8 @@ type CacheMap struct {
 	Cache *Cache
 }
 
+// Creates a CacheMap with filled info from the BoltDB cache based on
+// the packages in a Brewfile. Dependencies not resolved at this stage.
 func (c CacheMap) FromPackages(packages []string) error {
 	quotesRegexp := regexp.MustCompile(`'\S+'`)
 	argsRegexp := regexp.MustCompile(`\[.*\]`)
@@ -53,7 +55,8 @@ func (c CacheMap) FromPackages(packages []string) error {
 	return nil
 }
 
-// TODO: This needs to take recommended/all for clean
+// Resolves which dependencies are required, recommended, optional or build dependencies
+// for otherpackages in the Brewfile, based on the level given by the user.
 func (c CacheMap) ResolveDependencyMap(level int) error {
 	if level >= Required {
 		for _, b := range c.Map {
@@ -105,6 +108,7 @@ func (c CacheMap) ResolveDependencyMap(level int) error {
 	return nil
 }
 
+// Add an entry to the CacheMap and update the dependency map.
 func (c CacheMap) Add(entry Entry, level int) error {
 	info, err := c.Cache.Find(entry.Name)
 	if err != nil {
@@ -146,7 +150,7 @@ func (c CacheMap) Add(entry Entry, level int) error {
 	return nil
 }
 
-// TODO: Think about how to rework this
+// Remove an entry from the CacheMap and update the dependency map.
 func (c CacheMap) Remove(name string, level int) error {
 	if _, present := c.Map[name]; !present {
 		return errors.New("Nothing to remove.")
@@ -211,6 +215,7 @@ func (c CacheMap) Remove(name string, level int) error {
 	return nil
 }
 
+// Map one package to be a dependency of another.
 func (c CacheMap) addDependency(req, by string, dependencyType int) error {
 	var e Entry
 
@@ -292,6 +297,7 @@ func (c CacheMap) addDependency(req, by string, dependencyType int) error {
 	return nil
 }
 
+// Unmap a package as a dependency of another upon removal of that package.
 func (c CacheMap) removeDependency(req, by string, dependencyType int) {
 	b := c.Map[req]
 

@@ -4,8 +4,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"bytes"
-	"io"
 	"os"
 	"testing"
 
@@ -21,20 +19,19 @@ func TestBrew(t *testing.T) {
 	RunSpecs(t, "Brew Suite")
 }
 
-func captureStdout(f func()) string {
-	old := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
+var testPath = fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "src/github.com/lgug2z/bfm/testData")
 
-	f()
+var _ = BeforeSuite(func() {
+	if _, err := os.Stat(testPath); os.IsNotExist(err) {
+		Expect(os.Mkdir(testPath, os.ModePerm)).To(Succeed())
+	}
+})
 
-	w.Close()
-	os.Stdout = old
-
-	var buf bytes.Buffer
-	io.Copy(&buf, r)
-	return buf.String()
-}
+var _ = AfterSuite(func() {
+	if _, err := os.Stat(testPath); err == nil {
+		Expect(os.Remove(testPath)).To(Succeed())
+	}
+})
 
 type TestDB struct {
 	*bolt.DB

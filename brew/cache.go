@@ -14,7 +14,8 @@ type Cache struct {
 	DB *bolt.DB
 }
 
-// TODO: Figure out a consistent naming convention for casks
+// Create a BoltDB bucket for cask info, run the given command,
+// parse the response and store it in the bucket.
 func (c *Cache) RefreshCasks(command *exec.Cmd) error {
 	b, err := command.Output()
 	if err != nil {
@@ -53,6 +54,8 @@ func (c *Cache) RefreshCasks(command *exec.Cmd) error {
 	return nil
 }
 
+// Create a BoltDB bucket for brew formulae info, run the given command,
+// parse the response and store it in the bucket.
 func (c *Cache) Refresh(command *exec.Cmd) error {
 	b, err := command.Output()
 	if err != nil {
@@ -102,6 +105,7 @@ func (c *Cache) Refresh(command *exec.Cmd) error {
 	return nil
 }
 
+// Find a cask in the BoltDB cask bucket.
 func (c Cache) FindCask(pkg string) (string, error) {
 	var cask string
 
@@ -125,6 +129,7 @@ func (c Cache) FindCask(pkg string) (string, error) {
 	return cask, nil
 }
 
+// Find a brew formula info in the BoltDB brew bucket.
 func (c Cache) Find(pkg string) (Info, error) {
 	var info Info
 
