@@ -15,7 +15,7 @@ var refreshCmd = &cobra.Command{
 	Long:  DocsRefresh,
 	Run: func(cmd *cobra.Command, args []string) {
 		brewInfo := exec.Command("brew", "info", "--all", "--json=v1")
-		caskInfo := exec.Command("brew", "cask", "search")
+		caskInfo := exec.Command("brew", "search", "--casks")
 
 		db, err := bolt.Open(boltPath, 0600, nil)
 		if err != nil {
