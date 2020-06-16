@@ -6,9 +6,9 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/LGUG2Z/bfm/brew"
+	"github.com/LGUG2Z/bfm/brewfile"
 	"github.com/boltdb/bolt"
-	"github.com/lgug2z/bfm/brew"
-	"github.com/lgug2z/bfm/brewfile"
 	"github.com/spf13/cobra"
 )
 

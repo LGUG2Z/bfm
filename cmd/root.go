@@ -6,7 +6,7 @@ import (
 
 	"strings"
 
-	"github.com/lgug2z/bfm/brew"
+	"github.com/LGUG2Z/bfm/brew"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os/exec"
 
+	"runtime"
 	"strings"
 
 	"github.com/boltdb/bolt"
@@ -17,6 +18,10 @@ type Cache struct {
 // Create a BoltDB bucket for cask info, run the given command,
 // parse the response and store it in the bucket.
 func (c *Cache) RefreshCasks(command *exec.Cmd) error {
+	if runtime.GOOS == "linux" {
+		return nil
+	}
+
 	b, err := command.Output()
 	if err != nil {
 		return err

@@ -3,8 +3,8 @@ package cmd
 import (
 	"os/exec"
 
+	"github.com/LGUG2Z/bfm/brew"
 	"github.com/boltdb/bolt"
-	"github.com/lgug2z/bfm/brew"
 	"github.com/spf13/cobra"
 )
 

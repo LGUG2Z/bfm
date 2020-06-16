@@ -14,7 +14,7 @@
 
 package main
 
-import "github.com/lgug2z/bfm/cmd"
+import "github.com/LGUG2Z/bfm/cmd"
 
 func main() {
 	cmd.Execute()

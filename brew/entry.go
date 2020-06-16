@@ -5,7 +5,7 @@ import (
 	"strings"
 	"text/template"
 
-	. "github.com/lgug2z/bfm/helpers"
+	. "github.com/LGUG2Z/bfm/helpers"
 )
 
 type Entry struct {

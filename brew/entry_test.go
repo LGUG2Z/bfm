@@ -1,7 +1,7 @@
 package brew_test
 
 import (
-	. "github.com/lgug2z/bfm/brew"
+	. "github.com/LGUG2Z/bfm/brew"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

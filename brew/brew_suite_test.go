@@ -10,8 +10,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/LGUG2Z/bfm/brew"
 	"github.com/boltdb/bolt"
-	"github.com/lgug2z/bfm/brew"
 )
 
 func TestBrew(t *testing.T) {
@@ -19,7 +19,7 @@ func TestBrew(t *testing.T) {
 	RunSpecs(t, "Brew Suite")
 }
 
-var testPath = fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "src/github.com/lgug2z/bfm/testData")
+var testPath = fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "src/github.com/LGUG2Z/bfm/testData")
 
 var _ = BeforeSuite(func() {
 	if _, err := os.Stat(testPath); os.IsNotExist(err) {

@@ -1,7 +1,7 @@
 package brewfile_test
 
 import (
-	. "github.com/lgug2z/bfm/brewfile"
+	. "github.com/LGUG2Z/bfm/brewfile"
 
 	"fmt"
 	"io/ioutil"
@@ -15,7 +15,7 @@ var _ = Describe("Packages", func() {
 	Describe("When given a path to a Brewfile", func() {
 		var (
 			packages Packages
-			bf       = fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "/src/github.com/lgug2z/bfm/testData/testBrewfile")
+			bf       = fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "/src/github.com/LGUG2Z/bfm/testData/testBrewfile")
 			contents = `
 tap 'homebrew/bundle'
 brew 'a2ps'

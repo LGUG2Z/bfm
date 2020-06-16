@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"sort"
 
-	. "github.com/lgug2z/bfm/helpers"
+	. "github.com/LGUG2Z/bfm/helpers"
 )
 
 type Map map[string]Entry

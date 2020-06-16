@@ -1,7 +1,7 @@
 package cmd_test
 
 import (
-	. "github.com/lgug2z/bfm/cmd"
+	. "github.com/LGUG2Z/bfm/cmd"
 
 	"fmt"
 	"os"
@@ -9,8 +9,8 @@ import (
 
 	"encoding/json"
 
+	"github.com/LGUG2Z/bfm/brew"
 	"github.com/boltdb/bolt"
-	"github.com/lgug2z/bfm/brew"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -20,7 +20,7 @@ var _ = Describe("Refresh", func() {
 		It("It should populate the file from the output of the given command and write it to disk", func() {
 			brewCommand := exec.Command("echo", `[ { "name": "a2ps", "full_name": "a2ps" } ]`)
 			caskCommand := exec.Command("echo", `firefox    google-chrome   opera`)
-			dbFile := fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "src/github.com/lgug2z/bfm/testData/testDB.bolt")
+			dbFile := fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "src/github.com/LGUG2Z/bfm/testData/testDB.bolt")
 
 			db, err := NewTestDB(dbFile)
 			Expect(err).ToNot(HaveOccurred())

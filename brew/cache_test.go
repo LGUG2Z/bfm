@@ -1,7 +1,7 @@
 package brew_test
 
 import (
-	. "github.com/lgug2z/bfm/brew"
+	. "github.com/LGUG2Z/bfm/brew"
 
 	"fmt"
 	"os"
@@ -15,7 +15,7 @@ import (
 var _ = Describe("Cache", func() {
 	var (
 		cache  Cache
-		dbFile = fmt.Sprintf("%s/src/github.com/lgug2z/bfm/testData/testDB.bolt", os.Getenv("GOPATH"))
+		dbFile = fmt.Sprintf("%s/src/github.com/LGUG2Z/bfm/testData/testDB.bolt", os.Getenv("GOPATH"))
 		db     *TestDB
 	)
 

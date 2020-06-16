@@ -1,15 +1,15 @@
 package cmd_test
 
 import (
-	. "github.com/lgug2z/bfm/cmd"
+	. "github.com/LGUG2Z/bfm/cmd"
 
 	"fmt"
 	"os"
 
 	"io/ioutil"
 
-	"github.com/lgug2z/bfm/brew"
-	"github.com/lgug2z/bfm/brewfile"
+	"github.com/LGUG2Z/bfm/brew"
+	"github.com/LGUG2Z/bfm/brewfile"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -17,8 +17,8 @@ import (
 var _ = Describe("Remove", func() {
 
 	var (
-		bf       = fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "/src/github.com/lgug2z/bfm/testData/testBrewfile")
-		dbFile   = fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "src/github.com/lgug2z/bfm/testData/testDB.bolt")
+		bf       = fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "/src/github.com/LGUG2Z/bfm/testData/testBrewfile")
+		dbFile   = fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "src/github.com/LGUG2Z/bfm/testData/testDB.bolt")
 		cache    brew.Cache
 		packages brewfile.Packages
 		db       *TestDB

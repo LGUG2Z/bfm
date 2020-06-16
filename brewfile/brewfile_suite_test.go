@@ -15,7 +15,7 @@ func TestBrewfile(t *testing.T) {
 	RunSpecs(t, "Brewfile Suite")
 }
 
-var testPath = fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "src/github.com/lgug2z/bfm/testData")
+var testPath = fmt.Sprintf("%s/%s", os.Getenv("GOPATH"), "src/github.com/LGUG2Z/bfm/testData")
 
 var _ = BeforeSuite(func() {
 	if _, err := os.Stat(testPath); os.IsNotExist(err) {
